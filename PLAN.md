@@ -314,9 +314,9 @@ Tokens vía CSS variables de shadcn (`--background`, `--foreground`, `--primary`
 tokens propios `--income`, `--expense`. **Un solo acento en toda la app** (lock).
 
 **Tipografía (pairing deliberado, NO Inter, NO lucide).**
-- **Display (serif editorial):** `Newsreader` *(alt: `Spectral` o `Libre Caslon Display`)* para
-  títulos de sección y el balance héroe. Tracking `-0.02em`, line-height `1.1`.
-  **Evitar `Fraunces` e `Instrument Serif`** (marcadas como AI-default por taste-skill). → ver D4.
+- **Display (serif editorial):** `Newsreader` (decidido, D4) para títulos de sección y el balance
+  héroe. Tracking `-0.02em`, line-height `1.1`. Se evitan `Fraunces` e `Instrument Serif`
+  (marcadas como AI-default por taste-skill).
 - **Body/UI (sans geométrica):** `Geist Sans` (o `Switzer`).
 - **Números/meta (mono tabular):** `Geist Mono` con `font-variant-numeric: tabular-nums` —
   todos los montos, fechas y datos. Es el rasgo más característico.
@@ -392,9 +392,10 @@ controlado (patrón v2 Item 3). Form:
 **Cuotas / Subs / Presupuesto.** Igual a v2 en funcionalidad; la "cuenta" del plan es una
 etiqueta opcional. El pago genera un egreso con su moneda.
 
-**Ajustes.** Apertura por moneda (`user_opening_balances`), gestión de medios y categorías,
-acción opcional de **conteo/reconciliación** por moneda (ajuste que escribe un ingreso/egreso
-de corrección para cuadrar el pozo con la realidad).
+**Ajustes.** Apertura por moneda (`user_opening_balances`), gestión de medios y categorías, y
+acción de **conteo/reconciliación** por moneda (desde el inicio, D3): el usuario ingresa cuánto
+tiene realmente en una moneda y la app escribe un movimiento de ajuste (ingreso/egreso por la
+diferencia, categoría "Ajuste") para cuadrar el pozo con la realidad.
 
 ### 5.4 Estado (Redux Toolkit + RTK Query)
 A diferencia de v2 (un `financeSlice` monolítico con `loadFinanceData`), v3 usa **RTK Query**:
@@ -487,8 +488,8 @@ de transfer en adelantos, una-cuenta-por-moneda.
   pagos adelantados pierden el transfer (quedan como `EXPENSE`). Se escribe un script de
   migración `v2 -> v3` y se valida que `Σ saldos v2 == Σ pozos v3` por moneda.
 
-### Abiertas (las explico aparte; no bloquean el scaffold)
-- **D3 — Reconciliación:** ¿incluir la acción de conteo/ajuste por moneda en *Ajustes* ya en la
-  fase inicial, o en una fase posterior? *(no afecta el schema)*
-- **D4 — Tipografía display:** elegir la serif editorial entre **Newsreader** (rec.), `Spectral`
-  o `Libre Caslon Display`. **Descartada `Fraunces`** (AI-default según taste-skill).
+- **D3 — Reconciliación:** ✅ **Resuelto: desde el inicio.** La acción de conteo/ajuste por
+  moneda va en *Ajustes* en la fase inicial (escribe un movimiento de ajuste para cuadrar el
+  pozo con la realidad). *(no afecta el schema)*
+- **D4 — Tipografía display:** ✅ **Resuelto: `Newsreader`** para la serif editorial (títulos +
+  balance héroe). Descartadas `Fraunces` e `Instrument Serif` (AI-default según taste-skill).
