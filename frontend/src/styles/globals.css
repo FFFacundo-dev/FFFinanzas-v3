@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  FFFinanzas v3 — tokens (PLAN §5.1)
+  warm monochrome + pastel semántico · un solo acento · dark mode obligatorio.
+  Las CSS variables guardan el color completo (hex), no canales HSL.
+*/
+
+@layer base {
+  :root {
+    --background: #fbfbfa; /* canvas */
+    --foreground: #1f2421; /* ink (off-black) */
+
+    --card: #ffffff;
+    --card-foreground: #1f2421;
+
+    --popover: #ffffff;
+    --popover-foreground: #1f2421;
+
+    --primary: #2f6f4f; /* acento: verde profundo desaturado */
+    --primary-foreground: #fbfbfa;
+
+    --secondary: #f2f2f0;
+    --secondary-foreground: #1f2421;
+
+    --muted: #f2f2f0;
+    --muted-foreground: #787774; /* texto secundario */
+
+    --accent: #f2f2f0; /* hover/selección sutil */
+    --accent-foreground: #1f2421;
+
+    --destructive: #9f2f2d;
+    --destructive-foreground: #fbfbfa;
+
+    --border: #eaeaea; /* divisores 1px (regla estricta) */
+    --input: #eaeaea;
+    --ring: #2f6f4f;
+
+    /* tokens propios de signo de dinero */
+    --income: #edf3ec;
+    --income-foreground: #346538;
+    --expense: #fdebec;
+    --expense-foreground: #9f2f2d;
+
+    --radius: 10px; /* cards/inputs; botones usan rounded-sm = 6px */
+  }
+
+  .dark {
+    --background: #16181a; /* off-black */
+    --foreground: #ececea;
+
+    --card: #1e2022; /* surfaces */
+    --card-foreground: #ececea;
+
+    --popover: #1e2022;
+    --popover-foreground: #ececea;
+
+    --primary: #57a07a; /* acento atenuado para contraste en dark */
+    --primary-foreground: #0f1311;
+
+    --secondary: #26292b;
+    --secondary-foreground: #ececea;
+
+    --muted: #26292b;
+    --muted-foreground: #9a9a96;
+
+    --accent: #26292b;
+    --accent-foreground: #ececea;
+
+    --destructive: #b85451;
+    --destructive-foreground: #f7eded;
+
+    --border: #2a2d30;
+    --input: #2a2d30;
+    --ring: #57a07a;
+
+    --income: #1c2a20;
+    --income-foreground: #8fcf9a;
+    --expense: #2e1c1d;
+    --expense-foreground: #e2908e;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv01', 'ss01';
+  }
+
+  /* Display serif editorial: títulos de sección y balance héroe */
+  .font-display {
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  /* Números, fechas y montos: mono tabular (rasgo característico) */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}
+
+/* Motion intensidad 3: respeta prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
