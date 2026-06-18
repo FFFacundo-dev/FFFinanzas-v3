@@ -1,5 +1,8 @@
 import { apiSlice } from '@/app/apiSlice'
 
+// Crear/editar/borrar una tx mueve el pozo: invalidamos balances y reportes.
+const MUTATION_TAGS = [{ type: 'Transaction', id: 'LIST' }, 'Balance', 'Report']
+
 export const transactionsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query({
@@ -13,7 +16,27 @@ export const transactionsApi = apiSlice.injectEndpoints({
             ]
           : [{ type: 'Transaction', id: 'LIST' }],
     }),
+    createTransaction: builder.mutation({
+      query: (body) => ({ url: '/transactions', method: 'POST', body }),
+      invalidatesTags: MUTATION_TAGS,
+    }),
+    updateTransaction: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/transactions/${id}`, method: 'PUT', body }),
+      invalidatesTags: (_r, _e, arg) => [
+        ...MUTATION_TAGS,
+        { type: 'Transaction', id: arg.id },
+      ],
+    }),
+    deleteTransaction: builder.mutation({
+      query: (id) => ({ url: `/transactions/${id}`, method: 'DELETE' }),
+      invalidatesTags: MUTATION_TAGS,
+    }),
   }),
 })
 
-export const { useGetTransactionsQuery } = transactionsApi
+export const {
+  useGetTransactionsQuery,
+  useCreateTransactionMutation,
+  useUpdateTransactionMutation,
+  useDeleteTransactionMutation,
+} = transactionsApi
