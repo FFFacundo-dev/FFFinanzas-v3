@@ -73,32 +73,35 @@ export function SubscriptionsView() {
           }
         />
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {subs.map((s) => {
             const status = STATUS_META[s.status] ?? STATUS_META.ACTIVE
             return (
-              <Card key={s.id} className="shadow-subtle">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-foreground">{s.name}</p>
-                      <Badge className={`rounded-sm font-normal ${status.cls}`}>
-                        {status.label}
-                      </Badge>
-                    </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+              <Card key={s.id} className="flex flex-col shadow-subtle">
+                <CardContent className="flex flex-1 flex-col py-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate font-medium text-foreground">{s.name}</p>
+                    <Badge className={`shrink-0 rounded-sm font-normal ${status.cls}`}>
+                      {status.label}
+                    </Badge>
+                  </div>
+
+                  <div className="mt-3 flex-1">
+                    {s.default_amount != null ? (
+                      <MoneyAmount value={s.default_amount} currency={s.currency_code} size="lg" />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Sin monto fijo</span>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {s.billing_day ? `Cobra el día ${s.billing_day}` : 'Sin día de cobro'}
                     </p>
                   </div>
 
-                  {s.default_amount != null && (
-                    <MoneyAmount value={s.default_amount} currency={s.currency_code} size="lg" />
-                  )}
-
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="flex-1"
                       onClick={() => setPayFor(s)}
                       disabled={s.default_amount == null}
                     >
