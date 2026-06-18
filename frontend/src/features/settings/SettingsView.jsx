@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { Gear } from '@phosphor-icons/react'
+import { FolderSimple, Wallet } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
-import { EmptyState } from '@/components/common/EmptyState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -21,6 +22,10 @@ import {
   toggleRemainingCurrency,
 } from '@/features/ui/uiSlice'
 import { CURRENCY_META } from '@/lib/format'
+import { CategoryManagerDialog } from '@/features/categories/components/CategoryManagerDialog'
+import { AccountManagerDialog } from '@/features/accounts/components/AccountManagerDialog'
+import { OpeningBalancesCard } from './components/OpeningBalancesCard'
+import { ReconcileCard } from './components/ReconcileCard'
 
 const MODE_OPTIONS = [
   { value: 'POZO', label: 'Pozo', hint: 'Saldo del pozo, tal cual' },
@@ -34,6 +39,9 @@ export function SettingsView() {
   const selected = useSelector(selectRemainingCurrencies)
   const { data: currencies = [] } = useGetCurrenciesQuery()
 
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+
   return (
     <>
       <PageHeader
@@ -42,11 +50,36 @@ export function SettingsView() {
       />
 
       <div className="space-y-6">
+        <OpeningBalancesCard />
+
+        <ReconcileCard />
+
+        {/* Gestión de categorías y medios */}
         <Card className="shadow-subtle">
           <CardHeader>
             <CardTitle className="font-display text-base font-normal">
-              Dinero restante
+              Categorías y medios
             </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Las etiquetas con las que clasificás tus movimientos.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setCategoryOpen(true)}>
+              <FolderSimple className="h-4 w-4" />
+              Gestionar categorías
+            </Button>
+            <Button variant="outline" onClick={() => setAccountOpen(true)}>
+              <Wallet className="h-4 w-4" />
+              Gestionar medios
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Dinero restante (barra superior) */}
+        <Card className="shadow-subtle">
+          <CardHeader>
+            <CardTitle className="font-display text-base font-normal">Dinero restante</CardTitle>
             <p className="text-sm text-muted-foreground">
               Controlá la barra superior que ves en todo momento.
             </p>
@@ -96,13 +129,10 @@ export function SettingsView() {
             </div>
           </CardContent>
         </Card>
-
-        <EmptyState
-          icon={Gear}
-          title="Apertura y reconciliación llegan en la fase 8"
-          description="Saldo de apertura por moneda y el conteo/ajuste del pozo contra la realidad."
-        />
       </div>
+
+      <CategoryManagerDialog open={categoryOpen} onOpenChange={setCategoryOpen} />
+      <AccountManagerDialog open={accountOpen} onOpenChange={setAccountOpen} />
     </>
   )
 }
