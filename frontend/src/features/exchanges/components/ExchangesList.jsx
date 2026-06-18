@@ -30,7 +30,7 @@ export function ExchangesList({ items, isLoading, onDelete }) {
   return (
     <ul className="divide-y divide-border">
       {items.map((x) => (
-        <li key={x.id} className="group flex items-center gap-3 py-3">
+        <li key={x.id} className="flex items-center gap-3 py-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-secondary text-muted-foreground">
             <ArrowsClockwise className="h-4 w-4" />
           </span>
@@ -59,7 +59,7 @@ export function ExchangesList({ items, isLoading, onDelete }) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-within:opacity-100"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
             aria-label="Eliminar"
             onClick={() => onDelete(x)}
           >

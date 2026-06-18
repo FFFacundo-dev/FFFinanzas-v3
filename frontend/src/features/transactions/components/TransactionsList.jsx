@@ -33,7 +33,7 @@ export function TransactionsList({ items, isLoading, onEdit, onDelete }) {
       {items.map((t) => {
         const income = t.movement_type === 'INCOME'
         return (
-          <li key={t.id} className="group flex items-center gap-3 py-3">
+          <li key={t.id} className="flex items-center gap-3 py-3">
             <span
               className={
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-sm ' +
@@ -80,11 +80,11 @@ export function TransactionsList({ items, isLoading, onEdit, onDelete }) {
               size="sm"
             />
 
-            <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+            <div className="flex shrink-0 items-center">
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-muted-foreground"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 aria-label="Editar"
                 onClick={() => onEdit(t)}
               >
