@@ -9,6 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import {
@@ -17,6 +23,7 @@ import {
   setRemainingMode,
 } from '@/features/ui/uiSlice'
 import { useRemaining } from './useRemaining'
+import { RemainingDetail } from './RemainingDetail'
 
 const MODE_LABEL = {
   POZO: 'Pozo',
@@ -71,30 +78,50 @@ export function RemainingBar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <div className="flex min-w-0 items-center gap-4 overflow-x-auto">
-        {isLoading ? (
-          <Skeleton className="h-5 w-32" />
-        ) : !shown.length ? (
-          <span className="text-xs text-muted-foreground">Sin datos</span>
-        ) : (
-          shown.map((r) => {
-            const negative = r.value < 0
-            return (
-              <div key={r.currency_code} className="flex shrink-0 items-baseline gap-1.5">
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {r.currency_code}
-                </span>
-                <MoneyAmount
-                  value={Math.abs(r.value)}
-                  size="sm"
-                  tone={negative ? 'expense' : 'neutral'}
-                  signed={negative}
-                />
-              </div>
-            )
-          })
-        )}
-      </div>
+      <TooltipProvider delayDuration={120}>
+        <div className="flex min-w-0 items-center gap-4 overflow-x-auto">
+          {isLoading ? (
+            <Skeleton className="h-5 w-32" />
+          ) : !shown.length ? (
+            <span className="text-xs text-muted-foreground">Sin datos</span>
+          ) : (
+            shown.map((r) => {
+              const negative = r.value < 0
+              return (
+                <Tooltip key={r.currency_code}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex shrink-0 cursor-help items-baseline gap-1.5 rounded-sm px-1 py-0.5 transition-colors hover:bg-accent focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    >
+                      <span className="text-[11px] font-medium text-muted-foreground">
+                        {r.currency_code}
+                      </span>
+                      <MoneyAmount
+                        value={Math.abs(r.value)}
+                        size="sm"
+                        tone={negative ? 'expense' : 'neutral'}
+                        signed={negative}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    align="end"
+                    className="border border-border bg-popover p-3 text-popover-foreground shadow-md"
+                  >
+                    <RemainingDetail
+                      currency={r.currency_code}
+                      value={r.value}
+                      breakdown={r.breakdown}
+                      note={r.note}
+                    />
+                  </TooltipContent>
+                </Tooltip>
+              )
+            })
+          )}
+        </div>
+      </TooltipProvider>
     </div>
   )
 }
