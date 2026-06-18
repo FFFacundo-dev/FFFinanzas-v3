@@ -471,7 +471,9 @@ de transfer en adelantos, una-cuenta-por-moneda.
 6. **Movimientos** (Ingreso/Gasto/Cambio + managers de categorías y medios).
 7. **Cuotas / Subs / Presupuesto** (port simplificado de v2).
 8. **Ajustes** (apertura + reconciliación) y pulido visual / dark mode / reduced-motion.
-9. **Migración v2 → v3** (D5): script que mapea datos reales + validación de pozos por moneda.
+9. **Migración v2 → v3** (D5): ✅ `backend/scripts/migrate-v2-to-v3.js` (cross-DB, preserva UUIDs,
+   apertura = Σ initial_balance por moneda, transfers cross-moneda → exchanges, valida pozos).
+   Correr: `V2_DATABASE_URL=... V3_DATABASE_URL=... npm run migrate:v2-v3`.
 
 ---
 
