@@ -21,21 +21,43 @@
 import 'dotenv/config'
 import postgres from 'postgres'
 
-const V2_URL = process.env.V2_DATABASE_URL
-const V3_URL = process.env.V3_DATABASE_URL || process.env.DATABASE_URL
-
-if (!V2_URL || !V3_URL) {
-  console.error('Faltan V2_DATABASE_URL y/o V3_DATABASE_URL (o DATABASE_URL).')
-  process.exit(1)
-}
-
 // Mantener las columnas `date` como 'YYYY-MM-DD' (mismo criterio que config/db.js).
 const dateAsString = {
   types: { date: { to: 1082, from: [1082], serialize: (v) => v, parse: (v) => v } }
 }
 
-const v2 = postgres(V2_URL, { ssl: 'require', ...dateAsString })
-const v3 = postgres(V3_URL, { ssl: 'require', ...dateAsString })
+// Crea el cliente desde <PREFIX>_DATABASE_URL, o desde campos sueltos
+// <PREFIX>_PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE (recomendado si el password
+// tiene caracteres especiales como #, %, @ -> asi va crudo, sin URL-encoding).
+function makeClient(prefix, urlFallbacks = []) {
+  const base = { ssl: 'require', ...dateAsString }
+  const url = process.env[`${prefix}_DATABASE_URL`] || urlFallbacks.map((k) => process.env[k]).find(Boolean)
+
+  const host = process.env[`${prefix}_PGHOST`]
+  if (host) {
+    return postgres({
+      host,
+      port: Number(process.env[`${prefix}_PGPORT`] || 5432),
+      username: process.env[`${prefix}_PGUSER`] || 'postgres',
+      password: process.env[`${prefix}_PGPASSWORD`] || '',
+      database: process.env[`${prefix}_PGDATABASE`] || 'postgres',
+      ...base
+    })
+  }
+
+  if (url) return postgres(url, base)
+  return null
+}
+
+const v2 = makeClient('V2')
+const v3 = makeClient('V3', ['DATABASE_URL'])
+
+if (!v2 || !v3) {
+  console.error('Falta la conexion de v2 y/o v3.')
+  console.error('  v2: defini V2_DATABASE_URL o V2_PGHOST/V2_PGUSER/V2_PGPASSWORD/V2_PGDATABASE')
+  console.error('  v3: defini V3_DATABASE_URL (o DATABASE_URL) o V3_PGHOST/...')
+  process.exit(1)
+}
 
 function pick(row, columns) {
   const out = {}
