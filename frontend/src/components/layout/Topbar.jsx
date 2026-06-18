@@ -5,16 +5,21 @@ import { Button } from '@/components/ui/button'
 import { Brand } from './Brand'
 import { NavList } from './NavList'
 import { UserMenu } from './UserMenu'
+import { RemainingBar } from '@/features/remaining/RemainingBar'
 
-/** Topbar visible solo en < md; el hamburger abre el drawer (Sheet). */
+/**
+ * Header persistente (todas las pantallas): el hamburger + brand solo aparecen
+ * en < md; la barra de "dinero restante" se muestra siempre, a la derecha.
+ */
 export function Topbar() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="flex h-14 items-center gap-2 border-b border-border bg-card px-4 md:hidden">
+    <header className="flex h-14 items-center gap-2 border-b border-border bg-card px-4">
+      {/* Mobile: drawer + brand */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Abrir menú">
+          <Button variant="ghost" size="icon" aria-label="Abrir menú" className="md:hidden">
             <List className="h-5 w-5" />
           </Button>
         </SheetTrigger>
@@ -30,7 +35,11 @@ export function Topbar() {
           </div>
         </SheetContent>
       </Sheet>
-      <Brand className="text-lg" />
+      <Brand className="text-lg md:hidden" />
+
+      <div className="ml-auto min-w-0">
+        <RemainingBar />
+      </div>
     </header>
   )
 }
