@@ -33,8 +33,9 @@ function daysLeftLabel(deadline) {
 
 export function GoalCard({ goal, onAllocate, onRelease, onEdit, onArchiveToggle, onDelete }) {
   const current = Number(goal.current_amount)
-  const target = Number(goal.target_amount)
-  const pct = target > 0 ? (current / target) * 100 : 0
+  const hasTarget = goal.target_amount != null
+  const target = hasTarget ? Number(goal.target_amount) : null
+  const pct = hasTarget && target > 0 ? (current / target) * 100 : 0
   const archived = goal.status === 'ARCHIVED'
   const days = daysLeftLabel(goal.deadline)
 
@@ -96,21 +97,32 @@ export function GoalCard({ goal, onAllocate, onRelease, onEdit, onArchiveToggle,
         <div className="mt-3 flex flex-1 flex-col justify-end">
           <div className="flex items-baseline justify-between gap-2">
             <MoneyAmount value={current} currency={goal.currency_code} size="lg" />
-            <span className="text-xs text-muted-foreground">
-              de <span className="font-mono tabular">{target.toLocaleString('es-AR')}</span>
-            </span>
+            {hasTarget && (
+              <span className="text-xs text-muted-foreground">
+                de <span className="font-mono tabular">{target.toLocaleString('es-AR')}</span>
+              </span>
+            )}
           </div>
 
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-sm bg-secondary">
-            <div
-              className="h-full rounded-sm bg-primary"
-              style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
-            />
-          </div>
-          <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-mono tabular">{Math.round(pct)}%</span>
-            {days && <span>{days}</span>}
-          </div>
+          {hasTarget ? (
+            <>
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-sm bg-secondary">
+                <div
+                  className="h-full rounded-sm bg-primary"
+                  style={{ width: `${Math.max(2, Math.min(100, pct))}%` }}
+                />
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+                <span className="font-mono tabular">{Math.round(pct)}%</span>
+                {days && <span>{days}</span>}
+              </div>
+            </>
+          ) : (
+            <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Sin objetivo</span>
+              {days && <span>{days}</span>}
+            </div>
+          )}
         </div>
 
         {!archived && (

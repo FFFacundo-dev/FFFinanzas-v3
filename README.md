@@ -2,7 +2,8 @@
 
 App de finanzas personales — reescritura de [FFFinanzas v2] con el **modelo de fondo único**:
 la plata es un único pozo por moneda; las "cuentas" son etiquetas (medio de pago) que solo
-aplican al egreso. Sin saldo por cuenta, sin transferencias.
+aplican al egreso. Sin saldo por cuenta, sin transferencias. 
+[Prueba de ClaudeCode con skills de diseño frontend]
 
 > Diseño y decisiones completas en **[PLAN.md](PLAN.md)**.
 

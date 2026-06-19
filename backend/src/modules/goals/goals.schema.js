@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const createGoalSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es obligatorio').max(120),
-  target_amount: z.coerce.number().positive(),
+  target_amount: z.coerce.number().positive().nullable().optional(),
   currency_code: z.string().trim().min(1).max(10),
   deadline: z.string().date().nullable().optional()
 })
@@ -10,7 +10,7 @@ export const createGoalSchema = z.object({
 // La moneda no se edita (los movimientos heredan la moneda de la meta).
 export const updateGoalSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es obligatorio').max(120),
-  target_amount: z.coerce.number().positive(),
+  target_amount: z.coerce.number().positive().nullable().optional(),
   deadline: z.string().date().nullable().optional()
 })
 

@@ -44,7 +44,7 @@ export async function createGoal(userId, payload) {
   const currency = String(payload.currency_code).trim().toUpperCase()
   const rows = await sql`
     INSERT INTO public.goals (user_id, name, target_amount, currency_code, deadline)
-    VALUES (${userId}, ${payload.name.trim()}, ${payload.target_amount}, ${currency}, ${payload.deadline || null})
+    VALUES (${userId}, ${payload.name.trim()}, ${payload.target_amount ?? null}, ${currency}, ${payload.deadline || null})
     RETURNING id
   `
   return getGoal(userId, rows[0].id)
@@ -53,7 +53,7 @@ export async function createGoal(userId, payload) {
 export async function updateGoal(userId, id, payload) {
   const rows = await sql`
     UPDATE public.goals
-    SET name = ${payload.name.trim()}, target_amount = ${payload.target_amount},
+    SET name = ${payload.name.trim()}, target_amount = ${payload.target_amount ?? null},
         deadline = ${payload.deadline || null}
     WHERE id = ${id} AND user_id = ${userId}
     RETURNING id

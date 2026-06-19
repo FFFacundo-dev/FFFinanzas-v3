@@ -17,7 +17,9 @@ CREATE TABLE public.goals (
   id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       bigint       NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   name          varchar(120) NOT NULL,
-  target_amount numeric      NOT NULL CHECK (target_amount > 0),
+  -- Objetivo opcional (NULL = meta de ahorro abierto, sin objetivo).
+  -- El CHECK admite NULL (NULL > 0 = NULL, que satisface el constraint).
+  target_amount numeric      CHECK (target_amount > 0),
   currency_code varchar(10)  NOT NULL REFERENCES public.currencies(code),
   deadline      date,
   -- Estado controlado por el usuario. COMPLETED es DERIVADO (current >= target),
@@ -63,6 +65,7 @@ SELECT
   COALESCE(SUM(CASE WHEN m.movement_type = 'ALLOCATE' THEN m.amount
                     WHEN m.movement_type = 'RELEASE'  THEN -m.amount END), 0) AS current_amount,
   ( g.status <> 'ARCHIVED'
+    AND g.target_amount IS NOT NULL
     AND COALESCE(SUM(CASE WHEN m.movement_type = 'ALLOCATE' THEN m.amount
                           WHEN m.movement_type = 'RELEASE'  THEN -m.amount END), 0)
         >= g.target_amount ) AS is_completed

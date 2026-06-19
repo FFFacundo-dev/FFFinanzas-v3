@@ -42,23 +42,24 @@ function GoalForm({ goal, onClose }) {
       toast.error('El nombre es obligatorio')
       return
     }
-    if (!(Number(form.target_amount) > 0)) {
+    if (form.target_amount && !(Number(form.target_amount) > 0)) {
       toast.error('El objetivo debe ser mayor a cero')
       return
     }
+    const targetAmount = form.target_amount ? Number(form.target_amount) : null
     try {
       if (isEdit) {
         await updateGoal({
           id: goal.id,
           name: form.name.trim(),
-          target_amount: Number(form.target_amount),
+          target_amount: targetAmount,
           deadline: form.deadline || null,
         }).unwrap()
         toast.success('Meta actualizada')
       } else {
         await createGoal({
           name: form.name.trim(),
-          target_amount: Number(form.target_amount),
+          target_amount: targetAmount,
           currency_code: form.currency_code,
           deadline: form.deadline || null,
         }).unwrap()
@@ -95,16 +96,15 @@ function GoalForm({ goal, onClose }) {
 
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="goal-target">Objetivo</Label>
+            <Label htmlFor="goal-target">Objetivo (opcional)</Label>
             <Input
               id="goal-target"
               type="number"
               step="0.01"
               min="0"
-              required
               value={form.target_amount}
               onChange={(e) => set('target_amount', e.target.value)}
-              placeholder="0,00"
+              placeholder="Sin objetivo"
               className="font-mono tabular"
             />
           </div>
