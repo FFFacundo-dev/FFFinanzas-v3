@@ -8,6 +8,12 @@ export const dashboardApi = apiSlice.injectEndpoints({
       transformResponse: (res) => res.data,
       providesTags: ['Balance'],
     }),
+    // Saldos bifurcados: total / reservado en metas / disponible.
+    getBalancesSummary: builder.query({
+      query: () => '/dashboard/balances-summary',
+      transformResponse: (res) => res.data,
+      providesTags: ['Balance'],
+    }),
     // Gasto por cuenta/medio (reemplaza el saldo por cuenta).
     getSpendingByAccount: builder.query({
       query: () => '/dashboard/spending-by-account',
@@ -31,6 +37,7 @@ export const dashboardApi = apiSlice.injectEndpoints({
 
 export const {
   useGetBalanceByCurrencyQuery,
+  useGetBalancesSummaryQuery,
   useGetSpendingByAccountQuery,
   useGetMonthlyCashflowQuery,
   useGetCategoryBreakdownQuery,

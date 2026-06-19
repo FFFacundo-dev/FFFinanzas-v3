@@ -9,6 +9,16 @@ export function balanceByCurrency(userId) {
   `
 }
 
+// Saldos bifurcados por moneda: total / reservado en metas / disponible.
+export function balancesSummary(userId) {
+  return sql`
+    SELECT user_id, currency_code, total_balance, reserved_balance, available_balance
+    FROM public.v_user_balances_summary
+    WHERE user_id = ${userId}
+    ORDER BY currency_code ASC
+  `
+}
+
 export function spendingByAccount(userId) {
   return sql`
     SELECT s.account_id, a.name AS account_name, a.account_type, s.currency_code, s.total_expense

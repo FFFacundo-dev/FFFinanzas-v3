@@ -15,6 +15,7 @@ import installmentsRoutes from '../modules/installments/installments.routes.js'
 import installmentPaymentsRoutes from '../modules/installments/installment-payments.routes.js'
 import installmentAdvancePaymentsRoutes from '../modules/installments/installment-advance-payments.routes.js'
 import budgetRoutes from '../modules/budget/budget.routes.js'
+import goalsRoutes from '../modules/goals/goals.routes.js'
 import dashboardRoutes from '../modules/dashboard/dashboard.routes.js'
 import reportsRoutes from '../modules/reports/reports.routes.js'
 
@@ -37,6 +38,7 @@ router.use('/installments', installmentsRoutes)
 router.use('/installment-payments', installmentPaymentsRoutes)
 router.use('/installment-advance-payments', installmentAdvancePaymentsRoutes)
 router.use('/budget', budgetRoutes)
+router.use('/goals', goalsRoutes)
 router.use('/dashboard', dashboardRoutes)
 router.use('/reports', reportsRoutes)
 

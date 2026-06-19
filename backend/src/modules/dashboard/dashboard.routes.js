@@ -8,6 +8,10 @@ router.get('/balance-by-currency', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await service.balanceByCurrency(req.auth.userId) })
 }))
 
+router.get('/balances-summary', asyncHandler(async (req, res) => {
+  res.json({ ok: true, data: await service.balancesSummary(req.auth.userId) })
+}))
+
 router.get('/spending-by-account', asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await service.spendingByAccount(req.auth.userId) })
 }))

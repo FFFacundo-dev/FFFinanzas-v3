@@ -26,15 +26,15 @@ import { useRemaining } from './useRemaining'
 import { RemainingDetail } from './RemainingDetail'
 
 const MODE_LABEL = {
-  POZO: 'Pozo',
+  DISPONIBLE: 'Disponible',
   LIBRE: 'Libre',
-  PRESUPUESTO: 'Presupuesto',
+  TOTAL: 'Total',
 }
 
 const MODE_HINT = {
-  POZO: 'Saldo del pozo',
-  LIBRE: 'Menos lo comprometido',
-  PRESUPUESTO: 'Menos el presupuesto del mes',
+  DISPONIBLE: 'Total menos lo reservado en metas',
+  LIBRE: 'Disponible menos fijos y cuotas',
+  TOTAL: 'Saldo del pozo, sin descuentos',
 }
 
 /** Barra superior persistente con el "dinero restante" por moneda. */

@@ -10,6 +10,7 @@ import { DashboardView } from '@/features/dashboard/DashboardView'
 import { TransactionsView } from '@/features/transactions/TransactionsView'
 import { InstallmentsView } from '@/features/installments/InstallmentsView'
 import { SubscriptionsView } from '@/features/subscriptions/SubscriptionsView'
+import { GoalsView } from '@/features/goals/GoalsView'
 import { BudgetView } from '@/features/budget/BudgetView'
 import { SettingsView } from '@/features/settings/SettingsView'
 
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="movimientos" element={<TransactionsView />} />
             <Route path="cuotas" element={<InstallmentsView />} />
             <Route path="subs" element={<SubscriptionsView />} />
+            <Route path="metas" element={<GoalsView />} />
             <Route path="presupuesto" element={<BudgetView />} />
             <Route path="ajustes" element={<SettingsView />} />
           </Route>

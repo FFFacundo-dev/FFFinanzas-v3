@@ -4,11 +4,11 @@ const THEME_KEY = 'fff.theme'
 const REMAINING_MODE_KEY = 'fff.remainingMode'
 const REMAINING_CURRENCIES_KEY = 'fff.remainingCurrencies'
 
-// Modos del "dinero restante" (barra superior):
-//  POZO        → saldo del pozo, tal cual
-//  LIBRE       → saldo menos lo comprometido (fijos activos + cuotas por pagar)
-//  PRESUPUESTO → saldo menos el presupuesto proyectado del mes
-export const REMAINING_MODES = ['POZO', 'LIBRE', 'PRESUPUESTO']
+// Modos del "dinero restante" (barra superior), jerarquía TOTAL ≥ DISPONIBLE ≥ LIBRE:
+//  DISPONIBLE → total − reservado en metas
+//  LIBRE      → disponible − (cuotas por pagar + fijos activos)
+//  TOTAL      → saldo del pozo, tal cual
+export const REMAINING_MODES = ['DISPONIBLE', 'LIBRE', 'TOTAL']
 
 function initialTheme() {
   const saved = localStorage.getItem(THEME_KEY)
@@ -18,7 +18,7 @@ function initialTheme() {
 
 function initialMode() {
   const saved = localStorage.getItem(REMAINING_MODE_KEY)
-  return REMAINING_MODES.includes(saved) ? saved : 'POZO'
+  return REMAINING_MODES.includes(saved) ? saved : 'DISPONIBLE'
 }
 
 function initialCurrencies() {

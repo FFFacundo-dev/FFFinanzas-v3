@@ -28,9 +28,9 @@ import { OpeningBalancesCard } from './components/OpeningBalancesCard'
 import { ReconcileCard } from './components/ReconcileCard'
 
 const MODE_OPTIONS = [
-  { value: 'POZO', label: 'Pozo', hint: 'Saldo del pozo, tal cual' },
-  { value: 'LIBRE', label: 'Libre', hint: 'Menos fijos y cuotas por pagar' },
-  { value: 'PRESUPUESTO', label: 'Presupuesto', hint: 'Menos el presupuesto del mes' },
+  { value: 'DISPONIBLE', label: 'Disponible', hint: 'Total menos lo reservado en metas' },
+  { value: 'LIBRE', label: 'Libre', hint: 'Disponible menos fijos y cuotas' },
+  { value: 'TOTAL', label: 'Total', hint: 'Saldo del pozo, sin descuentos' },
 ]
 
 export function SettingsView() {

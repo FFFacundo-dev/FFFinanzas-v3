@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/common/PageHeader'
 import { toInputDate } from '@/lib/format'
 import {
-  useGetBalanceByCurrencyQuery,
+  useGetBalancesSummaryQuery,
   useGetSpendingByAccountQuery,
   useGetMonthlyCashflowQuery,
   useGetCategoryBreakdownQuery,
@@ -30,7 +30,7 @@ function Block({ children, delay = 0 }) {
 }
 
 export function DashboardView() {
-  const balance = useGetBalanceByCurrencyQuery()
+  const balance = useGetBalancesSummaryQuery()
   const spending = useGetSpendingByAccountQuery()
   const cashflow = useGetMonthlyCashflowQuery({ date_from: cashflowFrom() })
   const breakdown = useGetCategoryBreakdownQuery({ movement_type: 'EXPENSE' })

@@ -39,6 +39,7 @@ export const apiSlice = createApi({
     'Subscription',
     'Installment',
     'Budget',
+    'Goal',
     'Balance',
     'Report',
   ],

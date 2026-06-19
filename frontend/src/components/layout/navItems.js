@@ -3,6 +3,7 @@ import {
   Receipt,
   CreditCard,
   ArrowsClockwise,
+  Target,
   ChartPieSlice,
   Gear,
 } from '@phosphor-icons/react'
@@ -14,6 +15,7 @@ export const navItems = [
   { to: '/movimientos', label: 'Movimientos', icon: Receipt },
   { to: '/cuotas', label: 'Cuotas', icon: CreditCard },
   { to: '/subs', label: 'Subs / Fijos', icon: ArrowsClockwise },
+  { to: '/metas', label: 'Metas', icon: Target },
   { to: '/presupuesto', label: 'Presupuesto', icon: ChartPieSlice },
   { to: '/ajustes', label: 'Ajustes', icon: Gear },
 ]
