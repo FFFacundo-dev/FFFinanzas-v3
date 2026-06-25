@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import { AccountSelect, NONE } from '@/components/common/EntitySelects'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
@@ -101,13 +101,11 @@ function ReconcileForm({ currency, currentBalance, onClose }) {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="rec-real">Monto real</Label>
-          <Input
+          <MoneyInput
             id="rec-real"
-            type="number"
-            step="0.01"
             required
             value={real}
-            onChange={(e) => setReal(e.target.value)}
+            onChange={setReal}
             placeholder="0,00"
             className="font-mono tabular"
           />

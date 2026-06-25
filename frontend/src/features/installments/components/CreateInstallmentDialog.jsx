@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -116,14 +117,11 @@ function InstallmentForm({ onClose }) {
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="inst-total">Total</Label>
-            <Input
+            <MoneyInput
               id="inst-total"
-              type="number"
-              step="0.01"
-              min="0"
               required
               value={form.total_amount}
-              onChange={(e) => set('total_amount', e.target.value)}
+              onChange={(v) => set('total_amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />
@@ -161,13 +159,10 @@ function InstallmentForm({ onClose }) {
         ) : (
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="inst-amount">Monto de cada cuota</Label>
-            <Input
+            <MoneyInput
               id="inst-amount"
-              type="number"
-              step="0.01"
-              min="0"
               value={form.installment_amount}
-              onChange={(e) => set('installment_amount', e.target.value)}
+              onChange={(v) => set('installment_amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />

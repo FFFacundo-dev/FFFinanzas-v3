@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -126,13 +127,10 @@ function SubscriptionForm({ subscription, onClose }) {
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="sub-amount">Monto mensual</Label>
-            <Input
+            <MoneyInput
               id="sub-amount"
-              type="number"
-              step="0.01"
-              min="0"
               value={form.default_amount}
-              onChange={(e) => set('default_amount', e.target.value)}
+              onChange={(v) => set('default_amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />

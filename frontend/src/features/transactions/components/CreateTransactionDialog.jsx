@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -131,15 +132,11 @@ function TransactionForm({ transaction, movementType, onClose }) {
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="amount">Monto</Label>
-            <Input
+            <MoneyInput
               id="amount"
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              min="0"
               required
               value={form.amount}
-              onChange={(e) => set('amount', e.target.value)}
+              onChange={(v) => set('amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />

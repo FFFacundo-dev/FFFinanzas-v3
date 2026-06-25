@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -87,13 +88,10 @@ function ExchangeForm({ onClose }) {
         <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
           <div className="flex flex-col gap-1.5">
             <Label>Entregás</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
+            <MoneyInput
               required
               value={form.from_amount}
-              onChange={(e) => set('from_amount', e.target.value)}
+              onChange={(v) => set('from_amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />
@@ -118,13 +116,10 @@ function ExchangeForm({ onClose }) {
 
           <div className="flex flex-col gap-1.5">
             <Label>Recibís</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
+            <MoneyInput
               required
               value={form.to_amount}
-              onChange={(e) => set('to_amount', e.target.value)}
+              onChange={(v) => set('to_amount', v)}
               placeholder="0,00"
               className="font-mono tabular"
             />

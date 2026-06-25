@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Check } from '@phosphor-icons/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CURRENCY_META } from '@/lib/format'
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
@@ -37,11 +37,9 @@ function Row({ code, label, savedAmount }) {
         <span className="text-sm text-foreground">{code}</span>{' '}
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
-      <Input
-        type="number"
-        step="0.01"
+      <MoneyInput
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={setValue}
         placeholder="0,00"
         className="flex-1 font-mono tabular"
       />

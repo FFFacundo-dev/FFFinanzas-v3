@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import { AccountSelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
@@ -60,14 +61,11 @@ function PayForm({ installment, onClose }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="pi-amount">Monto</Label>
-          <Input
+          <MoneyInput
             id="pi-amount"
-            type="number"
-            step="0.01"
-            min="0"
             required
             value={form.amount}
-            onChange={(e) => set('amount', e.target.value)}
+            onChange={(v) => set('amount', v)}
             className="font-mono tabular"
           />
         </div>

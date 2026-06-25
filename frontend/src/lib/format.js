@@ -53,6 +53,29 @@ export function formatDate(value) {
   return dateFormatter.format(parseDate(value))
 }
 
+// ── Inputs de monto: agrupan miles con "." y decimales con "," (es-AR) ──
+// `clean` es el valor numérico en string con "." decimal (lo que va al backend).
+
+/** "1000000.5" → "1.000.000,5" (para mostrar mientras se escribe). Admite negativos. */
+export function formatThousands(clean) {
+  if (clean === '' || clean == null) return ''
+  const neg = String(clean).startsWith('-')
+  const [int, dec] = String(clean).replace(/^-/, '').split('.')
+  const grouped = (int || '').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const body = dec != null ? `${grouped},${dec}` : grouped
+  return neg ? `-${body}` : body
+}
+
+/** "1.000.000,5" (lo tipeado) → "1000000.5" (limpio para el backend). Admite negativos. */
+export function parseAmountInput(display) {
+  const neg = /^\s*-/.test(String(display))
+  const only = String(display).replace(/[^\d,]/g, '') // descarta los "." de miles y el signo
+  const [int, ...rest] = only.split(',')
+  const cleanInt = int.replace(/^0+(?=\d)/, '') // sin ceros a la izquierda
+  const body = only.includes(',') ? `${cleanInt}.${rest.join('')}` : cleanInt
+  return neg && body !== '' ? `-${body}` : body
+}
+
 /** 'YYYY-MM-DD' para inputs de tipo date. */
 export function toInputDate(value) {
   const d = parseDate(value)

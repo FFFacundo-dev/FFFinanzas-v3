@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { useGetBalancesSummaryQuery } from '@/features/dashboard/dashboardApi'
@@ -79,15 +79,12 @@ function MovementForm({ goal, type, onClose }) {
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gm-amount">Monto</Label>
-          <Input
+          <MoneyInput
             id="gm-amount"
-            type="number"
-            step="0.01"
-            min="0"
             required
             autoFocus
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
             placeholder="0,00"
             className="font-mono tabular"
           />
