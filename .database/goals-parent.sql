@@ -1,12 +1,11 @@
 -- ============================================================
 -- METAS: agrupación padre/contenedor — FFFinanzas v3
 -- ============================================================
--- Una meta puede AGRUPAR otras (ej: "Gastos Fijos" = "arca" + "os" + ...).
+-- Una meta puede AGRUPAR otras (ej: "Gastos Fijos" = "Impuesto 1" + "Impuesto 2" + ...).
 -- El padre NO tiene movimientos propios: su monto/objetivo/progreso es la
 -- SUMA de sus hijos (solo-lectura). Un solo nivel de anidación (un hijo no
 -- puede a su vez ser padre). Los hijos comparten la moneda del padre.
 --
--- Aplicar sobre goals.sql ya existente.
 -- ============================================================
 
 ALTER TABLE public.goals

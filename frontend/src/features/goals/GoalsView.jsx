@@ -14,6 +14,7 @@ import {
 import { GoalCard } from './components/GoalCard'
 import { GoalDialog } from './components/GoalDialog'
 import { GoalMovementDialog } from './components/GoalMovementDialog'
+import { GoalDetailDialog } from './components/GoalDetailDialog'
 
 function Section({ title, count, children }) {
   return (
@@ -36,6 +37,7 @@ export function GoalsView() {
 
   const [dialog, setDialog] = useState({ open: false, goal: null })
   const [movement, setMovement] = useState({ open: false, goal: null, type: 'ALLOCATE' })
+  const [detail, setDetail] = useState({ open: false, goal: null })
   const [toDelete, setToDelete] = useState(null)
 
   const childrenOf = (id) => goals.filter((g) => g.parent_id === id)
@@ -68,6 +70,7 @@ export function GoalsView() {
     onAllocate: (g) => setMovement({ open: true, goal: g, type: 'ALLOCATE' }),
     onRelease: (g) => setMovement({ open: true, goal: g, type: 'RELEASE' }),
     onEdit: (g) => setDialog({ open: true, goal: g }),
+    onDetails: (g) => setDetail({ open: true, goal: g }),
     onArchiveToggle: handleArchiveToggle,
     onDelete: setToDelete,
   }
@@ -139,6 +142,11 @@ export function GoalsView() {
         goal={movement.goal}
         type={movement.type}
         onOpenChange={(open) => setMovement((m) => ({ ...m, open }))}
+      />
+      <GoalDetailDialog
+        open={detail.open}
+        goal={detail.goal}
+        onOpenChange={(open) => setDetail((d) => ({ ...d, open }))}
       />
       <ConfirmDialog
         open={Boolean(toDelete)}
