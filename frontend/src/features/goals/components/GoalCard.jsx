@@ -7,6 +7,7 @@ import {
   ArrowCounterClockwise,
   Trash,
   ListBullets,
+  Scales,
 } from '@phosphor-icons/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ function daysLeftLabel(deadline) {
   return `Faltan ${diff} días`
 }
 
-export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, onDetails, onArchiveToggle, onDelete }) {
+export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, onDetails, onReconcile, onArchiveToggle, onDelete }) {
   const current = Number(goal.current_amount)
   const hasTarget = goal.target_amount != null
   const target = hasTarget ? Number(goal.target_amount) : null
@@ -77,6 +78,12 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
                   <ListBullets className="h-4 w-4" />
                   Detalles
                 </DropdownMenuItem>
+                {!isParent && !archived && (
+                  <DropdownMenuItem onClick={() => onReconcile(goal)}>
+                    <Scales className="h-4 w-4" />
+                    Conciliar
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => onEdit(goal)}>
                   <PencilSimple className="h-4 w-4" />
                   Editar
