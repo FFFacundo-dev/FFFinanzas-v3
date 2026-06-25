@@ -16,6 +16,18 @@ async function getGoal(userId, id) {
   return rows[0]
 }
 
+// Rechaza nombres repetidos (case-insensitive + trim). excludeId omite la propia meta al editar.
+async function assertNameAvailable(userId, name, excludeId = null) {
+  const rows = await sql`
+    SELECT 1 FROM public.goals
+    WHERE user_id = ${userId}
+      AND lower(trim(name)) = ${name.trim().toLowerCase()}
+      AND (${excludeId}::uuid IS NULL OR id <> ${excludeId}::uuid)
+    LIMIT 1
+  `
+  if (rows.length > 0) throw new HttpError(409, 'Ya existe una meta con ese nombre')
+}
+
 async function availableFor(userId, currencyCode) {
   const rows = await sql`
     SELECT available_balance FROM public.v_user_balances_summary
@@ -41,6 +53,7 @@ export function listGoals(userId, status) {
 }
 
 export async function createGoal(userId, payload) {
+  await assertNameAvailable(userId, payload.name)
   const currency = String(payload.currency_code).trim().toUpperCase()
   const rows = await sql`
     INSERT INTO public.goals (user_id, name, target_amount, currency_code, deadline)
@@ -51,6 +64,7 @@ export async function createGoal(userId, payload) {
 }
 
 export async function updateGoal(userId, id, payload) {
+  await assertNameAvailable(userId, payload.name, id)
   const rows = await sql`
     UPDATE public.goals
     SET name = ${payload.name.trim()}, target_amount = ${payload.target_amount ?? null},
