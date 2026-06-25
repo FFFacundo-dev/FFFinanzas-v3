@@ -15,6 +15,7 @@ import { GoalCard } from './components/GoalCard'
 import { GoalDialog } from './components/GoalDialog'
 import { GoalMovementDialog } from './components/GoalMovementDialog'
 import { GoalDetailDialog } from './components/GoalDetailDialog'
+import { ReconcileCard } from '@/features/settings/components/ReconcileCard'
 
 function Section({ title, count, children }) {
   return (
@@ -131,6 +132,10 @@ export function GoalsView() {
           )}
         </div>
       )}
+
+      <div className="mt-8">
+        <ReconcileCard />
+      </div>
 
       <GoalDialog
         open={dialog.open}
