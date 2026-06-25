@@ -43,9 +43,11 @@ export function GoalsView() {
   const [toDelete, setToDelete] = useState(null)
 
   const childrenOf = (id) => goals.filter((g) => g.parent_id === id)
-  const active = goals.filter((g) => g.status === 'ACTIVE' && !g.is_completed)
-  const completed = goals.filter((g) => g.status === 'ACTIVE' && g.is_completed)
-  const archived = goals.filter((g) => g.status === 'ARCHIVED')
+  // Las hijas no van a la grilla: solo se ven anidadas dentro de su meta padre.
+  const topLevel = goals.filter((g) => g.parent_id == null)
+  const active = topLevel.filter((g) => g.status === 'ACTIVE' && !g.is_completed)
+  const completed = topLevel.filter((g) => g.status === 'ACTIVE' && g.is_completed)
+  const archived = topLevel.filter((g) => g.status === 'ARCHIVED')
 
   async function handleArchiveToggle(goal) {
     const next = goal.status === 'ARCHIVED' ? 'ACTIVE' : 'ARCHIVED'

@@ -21,6 +21,32 @@ import {
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { parseDate } from '@/lib/format'
 
+// En la card del grupo, Aportar/Retirar abren un menú con las metas hijas;
+// al elegir una se reusa el flujo normal (onPick = onAllocate/onRelease de esa hija).
+function ChildActionMenu({ icon: Icon, label, items, onPick, isRelease }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="flex-1">
+          <Icon className="h-4 w-4" />
+          {label}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {items.map((c) => (
+          <DropdownMenuItem
+            key={c.id}
+            onClick={() => onPick(c)}
+            disabled={isRelease && Number(c.current_amount) <= 0}
+          >
+            {c.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 function daysLeftLabel(deadline) {
   if (!deadline) return null
   const today = new Date()
@@ -145,13 +171,21 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
         </div>
 
         {isParent ? (
-          <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
-            {children.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate text-muted-foreground">{c.name}</span>
-                <MoneyAmount value={Number(c.current_amount)} currency={c.currency_code} size="sm" />
+          <div className="mt-4 flex flex-col gap-3 border-t border-border pt-3">
+            <div className="flex flex-col gap-1.5">
+              {children.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate text-muted-foreground">{c.name}</span>
+                  <MoneyAmount value={Number(c.current_amount)} currency={c.currency_code} size="sm" />
+                </div>
+              ))}
+            </div>
+            {!archived && (
+              <div className="flex items-center gap-1">
+                <ChildActionMenu icon={Plus} label="Aportar" items={children} onPick={onAllocate} />
+                <ChildActionMenu icon={Minus} label="Retirar" items={children} onPick={onRelease} isRelease />
               </div>
-            ))}
+            )}
           </div>
         ) : (
           !archived && (
