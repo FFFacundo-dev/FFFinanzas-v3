@@ -103,6 +103,18 @@
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
+
+  /* Botón del calendario (date/month): el ícono nativo es negro y se pierde
+     en dark. Lo tintamos a gris para que sea visible y coherente. */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='month']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(0.45);
+  }
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  .dark input[type='month']::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+  }
 }
 
 /* Motion intensidad 3: respeta prefers-reduced-motion */
