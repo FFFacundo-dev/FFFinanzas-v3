@@ -31,13 +31,15 @@ function daysLeftLabel(deadline) {
   return `Faltan ${diff} días`
 }
 
-export function GoalCard({ goal, onAllocate, onRelease, onEdit, onArchiveToggle, onDelete }) {
+export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, onArchiveToggle, onDelete }) {
   const current = Number(goal.current_amount)
   const hasTarget = goal.target_amount != null
   const target = hasTarget ? Number(goal.target_amount) : null
   const pct = hasTarget && target > 0 ? (current / target) * 100 : 0
   const archived = goal.status === 'ARCHIVED'
   const days = daysLeftLabel(goal.deadline)
+  // Una meta padre/contenedor: su monto es la suma de los hijos, es solo-lectura.
+  const isParent = children.length > 0
 
   return (
     <Card className="flex flex-col shadow-subtle">
@@ -48,6 +50,11 @@ export function GoalCard({ goal, onAllocate, onRelease, onEdit, onArchiveToggle,
             <p className="text-xs text-muted-foreground">{goal.currency_code}</p>
           </div>
           <div className="flex items-center gap-1">
+            {isParent && (
+              <Badge variant="secondary" className="rounded-sm font-normal">
+                Grupo · {children.length}
+              </Badge>
+            )}
             {goal.is_completed && (
               <Badge className="rounded-sm bg-income font-normal text-income-foreground">
                 Completada
@@ -125,23 +132,34 @@ export function GoalCard({ goal, onAllocate, onRelease, onEdit, onArchiveToggle,
           )}
         </div>
 
-        {!archived && (
-          <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => onAllocate(goal)}>
-              <Plus className="h-4 w-4" />
-              Aportar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => onRelease(goal)}
-              disabled={current <= 0}
-            >
-              <Minus className="h-4 w-4" />
-              Retirar
-            </Button>
+        {isParent ? (
+          <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+            {children.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="truncate text-muted-foreground">{c.name}</span>
+                <MoneyAmount value={Number(c.current_amount)} currency={c.currency_code} size="sm" />
+              </div>
+            ))}
           </div>
+        ) : (
+          !archived && (
+            <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => onAllocate(goal)}>
+                <Plus className="h-4 w-4" />
+                Aportar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => onRelease(goal)}
+                disabled={current <= 0}
+              >
+                <Minus className="h-4 w-4" />
+                Retirar
+              </Button>
+            </div>
+          )
         )}
       </CardContent>
     </Card>

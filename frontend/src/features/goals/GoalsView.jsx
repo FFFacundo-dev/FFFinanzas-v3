@@ -38,6 +38,7 @@ export function GoalsView() {
   const [movement, setMovement] = useState({ open: false, goal: null, type: 'ALLOCATE' })
   const [toDelete, setToDelete] = useState(null)
 
+  const childrenOf = (id) => goals.filter((g) => g.parent_id === id)
   const active = goals.filter((g) => g.status === 'ACTIVE' && !g.is_completed)
   const completed = goals.filter((g) => g.status === 'ACTIVE' && g.is_completed)
   const archived = goals.filter((g) => g.status === 'ARCHIVED')
@@ -107,21 +108,21 @@ export function GoalsView() {
           {active.length > 0 && (
             <Section title="Activas" count={active.length}>
               {active.map((g) => (
-                <GoalCard key={g.id} goal={g} {...cardProps} />
+                <GoalCard key={g.id} goal={g} children={childrenOf(g.id)} {...cardProps} />
               ))}
             </Section>
           )}
           {completed.length > 0 && (
             <Section title="Completadas" count={completed.length}>
               {completed.map((g) => (
-                <GoalCard key={g.id} goal={g} {...cardProps} />
+                <GoalCard key={g.id} goal={g} children={childrenOf(g.id)} {...cardProps} />
               ))}
             </Section>
           )}
           {archived.length > 0 && (
             <Section title="Archivadas" count={archived.length}>
               {archived.map((g) => (
-                <GoalCard key={g.id} goal={g} {...cardProps} />
+                <GoalCard key={g.id} goal={g} children={childrenOf(g.id)} {...cardProps} />
               ))}
             </Section>
           )}

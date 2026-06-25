@@ -11,9 +11,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CurrencySelect } from '@/components/common/EntitySelects'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { CurrencySelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
-import { useCreateGoalMutation, useUpdateGoalMutation } from '../goalsApi'
+import { useCreateGoalMutation, useUpdateGoalMutation, useGetGoalsQuery } from '../goalsApi'
 
 function initialForm(goal) {
   if (goal) {
@@ -22,19 +29,32 @@ function initialForm(goal) {
       target_amount: goal.target_amount != null ? String(goal.target_amount) : '',
       currency_code: goal.currency_code ?? 'ARS',
       deadline: goal.deadline ? toInputDate(goal.deadline) : '',
+      parent_id: goal.parent_id ?? NONE,
     }
   }
-  return { name: '', target_amount: '', currency_code: 'ARS', deadline: '' }
+  return { name: '', target_amount: '', currency_code: 'ARS', deadline: '', parent_id: NONE }
 }
 
 function GoalForm({ goal, onClose }) {
   const isEdit = Boolean(goal)
   const [createGoal, createState] = useCreateGoalMutation()
   const [updateGoal, updateState] = useUpdateGoalMutation()
+  const { data: goals = [] } = useGetGoalsQuery()
   const saving = createState.isLoading || updateState.isLoading
   const [form, setForm] = useState(() => initialForm(goal))
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }))
+
+  // Esta meta agrupa otras → no puede a su vez pertenecer a un grupo.
+  const hasChildren = goals.some((g) => g.parent_id === goal?.id)
+  // Candidatas a padre: misma moneda, activas, no anidadas y distintas de esta meta.
+  const parentOptions = goals.filter(
+    (g) =>
+      g.id !== goal?.id &&
+      g.parent_id == null &&
+      g.status !== 'ARCHIVED' &&
+      g.currency_code === form.currency_code,
+  )
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -47,6 +67,7 @@ function GoalForm({ goal, onClose }) {
       return
     }
     const targetAmount = form.target_amount ? Number(form.target_amount) : null
+    const parentId = hasChildren || form.parent_id === NONE ? null : form.parent_id
     try {
       if (isEdit) {
         await updateGoal({
@@ -54,6 +75,7 @@ function GoalForm({ goal, onClose }) {
           name: form.name.trim(),
           target_amount: targetAmount,
           deadline: form.deadline || null,
+          parent_id: parentId,
         }).unwrap()
         toast.success('Meta actualizada')
       } else {
@@ -62,6 +84,7 @@ function GoalForm({ goal, onClose }) {
           target_amount: targetAmount,
           currency_code: form.currency_code,
           deadline: form.deadline || null,
+          parent_id: parentId,
         }).unwrap()
         toast.success('Meta creada')
       }
@@ -115,7 +138,7 @@ function GoalForm({ goal, onClose }) {
             ) : (
               <CurrencySelect
                 value={form.currency_code}
-                onChange={(v) => set('currency_code', v)}
+                onChange={(v) => setForm((f) => ({ ...f, currency_code: v, parent_id: NONE }))}
               />
             )}
           </div>
@@ -130,6 +153,32 @@ function GoalForm({ goal, onClose }) {
             onChange={(e) => set('deadline', e.target.value)}
             className="font-mono tabular"
           />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>Grupo (opcional)</Label>
+          {hasChildren ? (
+            <p className="text-xs text-muted-foreground">
+              Esta meta agrupa otras, no puede pertenecer a un grupo.
+            </p>
+          ) : (
+            <Select
+              value={form.parent_id}
+              onValueChange={(v) => set('parent_id', v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Sin grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Sin grupo</SelectItem>
+                {parentOptions.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         <DialogFooter className="mt-2">
