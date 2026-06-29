@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/common/PageHeader'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toInputDate } from '@/lib/format'
 import {
   useGetBalancesSummaryQuery,
@@ -48,20 +49,23 @@ export function DashboardView() {
           <BalanceHero balances={balance.data} isLoading={balance.isLoading} />
         </Block>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Block delay={60}>
-            <CashflowCard data={cashflow.data} isLoading={cashflow.isLoading} />
-          </Block>
-          <Block delay={120}>
-            <CategoryBreakdownCard
-              data={breakdown.data}
-              isLoading={breakdown.isLoading}
-            />
-          </Block>
-        </div>
-
-        <Block delay={180}>
-          <SpendingByAccountCard data={spending.data} isLoading={spending.isLoading} />
+        <Block delay={60}>
+          <Tabs defaultValue="cashflow">
+            <TabsList>
+              <TabsTrigger value="cashflow">Flujo mensual</TabsTrigger>
+              <TabsTrigger value="category">Por categoría</TabsTrigger>
+              <TabsTrigger value="account">Por medio</TabsTrigger>
+            </TabsList>
+            <TabsContent value="cashflow">
+              <CashflowCard data={cashflow.data} isLoading={cashflow.isLoading} />
+            </TabsContent>
+            <TabsContent value="category">
+              <CategoryBreakdownCard data={breakdown.data} isLoading={breakdown.isLoading} />
+            </TabsContent>
+            <TabsContent value="account">
+              <SpendingByAccountCard data={spending.data} isLoading={spending.isLoading} />
+            </TabsContent>
+          </Tabs>
         </Block>
 
         <Block delay={240}>

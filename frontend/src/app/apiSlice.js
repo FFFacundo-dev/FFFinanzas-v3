@@ -43,5 +43,13 @@ export const apiSlice = createApi({
     'Balance',
     'Report',
   ],
-  endpoints: () => ({}),
+  endpoints: (builder) => ({
+    // Snapshot FX (ARS por moneda) para conversiones display-only.
+    getExchangeRates: builder.query({
+      query: () => '/exchange-rates',
+      transformResponse: (res) => res.data,
+    }),
+  }),
 })
+
+export const { useGetExchangeRatesQuery } = apiSlice

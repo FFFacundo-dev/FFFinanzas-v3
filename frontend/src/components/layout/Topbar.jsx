@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Brand } from './Brand'
 import { NavList } from './NavList'
 import { UserMenu } from './UserMenu'
+import { ThemeToggle } from './ThemeToggle'
 import { RemainingBar } from '@/features/remaining/RemainingBar'
 
 /**
@@ -37,8 +38,11 @@ export function Topbar() {
       </Sheet>
       <Brand className="text-lg md:hidden" />
 
-      <div className="ml-auto min-w-0">
-        <RemainingBar />
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        <div className="min-w-0">
+          <RemainingBar />
+        </div>
+        <ThemeToggle />
       </div>
     </header>
   )

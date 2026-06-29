@@ -7,8 +7,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { toInputDate } from '@/lib/format'
+import { convertViaArs } from '@/lib/fx'
+import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
+import { useGetExchangeRatesQuery } from '@/app/apiSlice'
 import {
   useGetBudgetItemsQuery,
   useGetBudgetSummaryQuery,
@@ -17,6 +27,7 @@ import {
 import { AddBudgetItemDialog } from './components/AddBudgetItemDialog'
 
 const monthLabelFmt = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
+const ORIGINAL = '__original__' // ver cada moneda en la suya (sin conversión)
 
 export function BudgetView() {
   const [month, setMonth] = useState(() => {
@@ -30,6 +41,16 @@ export function BudgetView() {
   const summary = useGetBudgetSummaryQuery(periodMonth)
   const [deleteItem] = useDeleteBudgetItemMutation()
   const [addOpen, setAddOpen] = useState(false)
+
+  // Conversión display-only: no toca ningún dato guardado.
+  const [displayCurrency, setDisplayCurrency] = useState(ORIGINAL)
+  const { data: currencies = [] } = useGetCurrenciesQuery()
+  const { data: rates } = useGetExchangeRatesQuery(undefined, { skip: displayCurrency === ORIGINAL })
+  const converting = displayCurrency !== ORIGINAL
+  // value en la moneda de display; from = moneda original del monto.
+  const show = (amount, from) =>
+    converting ? convertViaArs(amount, from, displayCurrency, rates?.ars_per_currency) : Number(amount)
+  const shownCurrency = (from) => (converting ? displayCurrency : from)
 
   function shiftMonth(delta) {
     setMonth((m) => {
@@ -77,15 +98,37 @@ export function BudgetView() {
         </Button>
       </div>
 
+      {/* Moneda de visualización (display-only, no altera datos guardados) */}
+      <div className="mb-6 flex items-center justify-center gap-2 text-sm">
+        <span className="text-muted-foreground">Ver en</span>
+        <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
+          <SelectTrigger className="h-8 w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ORIGINAL}>Moneda original</SelectItem>
+            {currencies.map((c) => (
+              <SelectItem key={c.code} value={c.code}>
+                {c.code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {converting && (
+          <span className="text-xs text-muted-foreground">· valores estimados</span>
+        )}
+      </div>
+
       {/* Resumen por moneda */}
       {summary.isLoading ? (
         <Skeleton className="mb-6 h-28 w-full rounded-lg" />
       ) : summaryRows.length > 0 ? (
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
           {summaryRows.map((s) => {
-            const income = Number(s.hypothetical_income_total)
-            const expense = Number(s.hypothetical_expense_total)
-            const fixed = Number(s.fixed_debt_total)
+            const cur = shownCurrency(s.currency_code)
+            const income = show(s.hypothetical_income_total, s.currency_code)
+            const expense = show(s.hypothetical_expense_total, s.currency_code)
+            const fixed = show(s.fixed_debt_total, s.currency_code)
             const net = income - expense - fixed
             return (
               <Card key={s.currency_code} className="shadow-subtle">
@@ -94,22 +137,22 @@ export function BudgetView() {
                   <dl className="mt-2 space-y-1 text-sm">
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Fijos</dt>
-                      <dd><MoneyAmount value={fixed} currency={s.currency_code} size="sm" tone="expense" /></dd>
+                      <dd><MoneyAmount value={fixed} currency={cur} size="sm" tone="expense" /></dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Gastos hipotéticos</dt>
-                      <dd><MoneyAmount value={expense} currency={s.currency_code} size="sm" tone="expense" /></dd>
+                      <dd><MoneyAmount value={expense} currency={cur} size="sm" tone="expense" /></dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Ingresos hipotéticos</dt>
-                      <dd><MoneyAmount value={income} currency={s.currency_code} size="sm" tone="income" /></dd>
+                      <dd><MoneyAmount value={income} currency={cur} size="sm" tone="income" /></dd>
                     </div>
                     <div className="flex justify-between border-t border-border pt-1">
                       <dt className="text-foreground">Balance proyectado</dt>
                       <dd>
                         <MoneyAmount
                           value={Math.abs(net)}
-                          currency={s.currency_code}
+                          currency={cur}
                           size="sm"
                           tone={net < 0 ? 'expense' : 'income'}
                           signed
@@ -163,8 +206,8 @@ export function BudgetView() {
                     </div>
 
                     <MoneyAmount
-                      value={item.amount}
-                      currency={item.currency_code}
+                      value={show(item.amount, item.currency_code)}
+                      currency={shownCurrency(item.currency_code)}
                       tone={income ? 'income' : 'expense'}
                       signed
                       size="sm"
