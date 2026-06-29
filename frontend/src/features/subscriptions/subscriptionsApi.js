@@ -9,15 +9,15 @@ export const subscriptionsApi = apiSlice.injectEndpoints({
     }),
     createSubscription: builder.mutation({
       query: (body) => ({ url: '/subscriptions', method: 'POST', body }),
-      invalidatesTags: ['Subscription'],
+      invalidatesTags: ['Subscription', 'Budget'],
     }),
     updateSubscription: builder.mutation({
       query: ({ id, ...body }) => ({ url: `/subscriptions/${id}`, method: 'PUT', body }),
-      invalidatesTags: ['Subscription'],
+      invalidatesTags: ['Subscription', 'Budget'],
     }),
     deleteSubscription: builder.mutation({
       query: (id) => ({ url: `/subscriptions/${id}`, method: 'DELETE' }),
-      invalidatesTags: ['Subscription'],
+      invalidatesTags: ['Subscription', 'Budget'],
     }),
     // Un pago de suscripción crea un EXPENSE: invalida balances y reportes.
     paySubscription: builder.mutation({

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, CaretLeft, CaretRight, ChartPieSlice, Trash } from '@phosphor-icons/react'
+import { Plus, CaretLeft, CaretRight, ChartPieSlice, Trash, ArrowsClockwise } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ export function BudgetView() {
 
   const items = useGetBudgetItemsQuery(periodMonth)
   const summary = useGetBudgetSummaryQuery(periodMonth)
+  const refreshing = items.isFetching || summary.isFetching
   const [deleteItem] = useDeleteBudgetItemMutation()
   const [addOpen, setAddOpen] = useState(false)
 
@@ -78,10 +79,23 @@ export function BudgetView() {
         title="Presupuesto"
         description="Plan mensual de ingresos y gastos hipotéticos."
         actions={
-          <Button onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Ítem
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                items.refetch()
+                summary.refetch()
+              }}
+              disabled={refreshing}
+            >
+              <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+            <Button onClick={() => setAddOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Ítem
+            </Button>
+          </>
         }
       />
 
