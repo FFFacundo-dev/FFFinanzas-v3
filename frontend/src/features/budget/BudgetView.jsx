@@ -9,6 +9,7 @@ import { toInputDate } from '@/lib/format'
 import { useGetBudgetsQuery, useCreateBudgetMutation } from './budgetApi'
 import { BudgetCard } from './components/BudgetCard'
 import { BudgetDetailDialog } from './components/BudgetDetailDialog'
+import { BudgetNameDialog } from './components/BudgetNameDialog'
 
 const monthLabelFmt = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
 
@@ -23,8 +24,9 @@ export function BudgetView() {
   // Presupuestos del mes (varios, con nombre). El backend garantiza ≥1 (el default).
   const budgets = useGetBudgetsQuery(periodMonth)
   const budgetList = budgets.data ?? []
-  const [createBudget] = useCreateBudgetMutation()
+  const [createBudget, { isLoading: creating }] = useCreateBudgetMutation()
   const [detailId, setDetailId] = useState(null)
+  const [newOpen, setNewOpen] = useState(false)
   const detailBudget = budgetList.find((b) => b.id === detailId) ?? null
 
   function shiftMonth(delta) {
@@ -35,13 +37,10 @@ export function BudgetView() {
     })
   }
 
-  async function handleNewBudget() {
-    // ponytail: prompt nativo por ahora; la Tarea 3 lo reemplaza por un modal.
-    const name = window.prompt('Nombre del nuevo presupuesto')?.trim()
-    if (!name) return
+  async function handleCreateBudget(name) {
     try {
-      const created = await createBudget({ name, period_month: periodMonth }).unwrap()
-      setDetailId(created.id) // abrir su detalle recién creado
+      await createBudget({ name, period_month: periodMonth }).unwrap()
+      setNewOpen(false)
       toast.success('Presupuesto creado')
     } catch (err) {
       toast.error(err?.message ?? 'No se pudo crear')
@@ -88,7 +87,7 @@ export function BudgetView() {
           ))}
           <button
             type="button"
-            onClick={handleNewBudget}
+            onClick={() => setNewOpen(true)}
             className="block w-full text-left"
             aria-label="Nuevo presupuesto"
           >
@@ -106,6 +105,15 @@ export function BudgetView() {
         open={!!detailBudget}
         onOpenChange={(o) => !o && setDetailId(null)}
         budget={detailBudget}
+      />
+
+      <BudgetNameDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        title="Nuevo presupuesto"
+        submitLabel="Crear"
+        submitting={creating}
+        onSubmit={handleCreateBudget}
       />
     </>
   )

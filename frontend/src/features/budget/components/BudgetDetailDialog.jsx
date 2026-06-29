@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EmptyState } from '@/components/common/EmptyState'
+import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { convertViaArs } from '@/lib/fx'
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
@@ -33,6 +34,7 @@ import {
   useDeleteBudgetMutation,
 } from '../budgetApi'
 import { AddBudgetItemDialog } from './AddBudgetItemDialog'
+import { BudgetNameDialog } from './BudgetNameDialog'
 
 const ORIGINAL = '__original__' // ver cada moneda en la suya (sin conversión)
 
@@ -40,9 +42,11 @@ function BudgetDetail({ budget, onClose }) {
   const items = useGetBudgetItemsQuery(budget.id)
   const summary = useGetBudgetSummaryQuery(budget.id)
   const [deleteItem] = useDeleteBudgetItemMutation()
-  const [renameBudget] = useRenameBudgetMutation()
+  const [renameBudget, { isLoading: renaming }] = useRenameBudgetMutation()
   const [deleteBudget] = useDeleteBudgetMutation()
   const [addOpen, setAddOpen] = useState(false)
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // Conversión display-only: no toca ningún dato guardado.
   const [displayCurrency, setDisplayCurrency] = useState(ORIGINAL)
@@ -62,12 +66,14 @@ function BudgetDetail({ budget, onClose }) {
     }
   }
 
-  async function handleRename() {
-    // ponytail: prompt nativo por ahora; la Tarea 3 lo reemplaza por un modal.
-    const name = window.prompt('Nuevo nombre del presupuesto', budget.name)?.trim()
-    if (!name || name === budget.name) return
+  async function handleRename(name) {
+    if (name === budget.name) {
+      setRenameOpen(false)
+      return
+    }
     try {
       await renameBudget({ id: budget.id, name }).unwrap()
+      setRenameOpen(false)
       toast.success('Presupuesto renombrado')
     } catch (err) {
       toast.error(err?.message ?? 'No se pudo renombrar')
@@ -75,7 +81,6 @@ function BudgetDetail({ budget, onClose }) {
   }
 
   async function handleDeleteBudget() {
-    if (!window.confirm(`¿Eliminar "${budget.name}" y sus ítems?`)) return
     try {
       await deleteBudget(budget.id).unwrap()
       toast.success('Presupuesto eliminado')
@@ -101,7 +106,7 @@ function BudgetDetail({ budget, onClose }) {
           <Plus className="h-4 w-4" />
           Ítem
         </Button>
-        <Button size="sm" variant="outline" onClick={handleRename}>
+        <Button size="sm" variant="outline" onClick={() => setRenameOpen(true)}>
           <PencilSimple className="h-4 w-4" />
           Renombrar
         </Button>
@@ -110,7 +115,7 @@ function BudgetDetail({ budget, onClose }) {
             size="sm"
             variant="outline"
             className="text-destructive hover:text-destructive"
-            onClick={handleDeleteBudget}
+            onClick={() => setConfirmOpen(true)}
           >
             <Trash className="h-4 w-4" />
             Eliminar
@@ -247,6 +252,25 @@ function BudgetDetail({ budget, onClose }) {
       </ScrollArea>
 
       <AddBudgetItemDialog open={addOpen} onOpenChange={setAddOpen} budgetId={budget.id} />
+
+      <BudgetNameDialog
+        open={renameOpen}
+        onOpenChange={setRenameOpen}
+        title="Renombrar presupuesto"
+        initialName={budget.name}
+        submitLabel="Guardar"
+        submitting={renaming}
+        onSubmit={handleRename}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={`¿Eliminar "${budget.name}"?`}
+        description="Se eliminará el presupuesto y todos sus ítems. Esta acción no se puede deshacer."
+        confirmLabel="Eliminar"
+        onConfirm={handleDeleteBudget}
+      />
     </>
   )
 }
