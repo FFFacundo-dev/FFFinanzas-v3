@@ -1,7 +1,16 @@
 import { z } from 'zod'
 
+export const budgetSchema = z.object({
+  name: z.string().trim().min(1, 'El nombre es obligatorio').max(60),
+  period_month: z.string().trim().min(1)
+})
+
+export const budgetRenameSchema = z.object({
+  name: z.string().trim().min(1, 'El nombre es obligatorio').max(60)
+})
+
 export const budgetItemSchema = z.object({
-  period_month: z.string().trim().min(1),
+  budget_id: z.string().uuid(),
   label: z.string().trim().min(1, 'El label es obligatorio'),
   amount: z.coerce.number().positive(),
   flow_type: z.enum(['EXPENSE', 'INCOME']),

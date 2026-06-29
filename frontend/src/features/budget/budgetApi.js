@@ -2,13 +2,30 @@ import { apiSlice } from '@/app/apiSlice'
 
 export const budgetApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getBudgets: builder.query({
+      query: (periodMonth) => ({ url: '/budget/budgets', params: { period_month: periodMonth } }),
+      transformResponse: (res) => res.data,
+      providesTags: ['Budget'],
+    }),
+    createBudget: builder.mutation({
+      query: (body) => ({ url: '/budget/budgets', method: 'POST', body }),
+      invalidatesTags: ['Budget'],
+    }),
+    renameBudget: builder.mutation({
+      query: ({ id, name }) => ({ url: `/budget/budgets/${id}`, method: 'PUT', body: { name } }),
+      invalidatesTags: ['Budget'],
+    }),
+    deleteBudget: builder.mutation({
+      query: (id) => ({ url: `/budget/budgets/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Budget'],
+    }),
     getBudgetItems: builder.query({
-      query: (periodMonth) => ({ url: '/budget/items', params: { period_month: periodMonth } }),
+      query: (budgetId) => ({ url: '/budget/items', params: { budget_id: budgetId } }),
       transformResponse: (res) => res.data,
       providesTags: ['Budget'],
     }),
     getBudgetSummary: builder.query({
-      query: (periodMonth) => ({ url: '/budget/summary', params: { period_month: periodMonth } }),
+      query: (budgetId) => ({ url: '/budget/summary', params: { budget_id: budgetId } }),
       transformResponse: (res) => res.data,
       providesTags: ['Budget'],
     }),
@@ -37,6 +54,10 @@ export const budgetApi = apiSlice.injectEndpoints({
 })
 
 export const {
+  useGetBudgetsQuery,
+  useCreateBudgetMutation,
+  useRenameBudgetMutation,
+  useDeleteBudgetMutation,
   useGetBudgetItemsQuery,
   useGetBudgetSummaryQuery,
   useGetBudgetSettingsQuery,

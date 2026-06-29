@@ -20,6 +20,9 @@ import { convertViaArs } from '@/lib/fx'
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
 import { useGetExchangeRatesQuery } from '@/app/apiSlice'
 import {
+  useGetBudgetsQuery,
+  useCreateBudgetMutation,
+  useDeleteBudgetMutation,
   useGetBudgetItemsQuery,
   useGetBudgetSummaryQuery,
   useDeleteBudgetItemMutation,
@@ -37,11 +40,46 @@ export function BudgetView() {
   })
   const periodMonth = `${toInputDate(month).slice(0, 7)}-01`
 
-  const items = useGetBudgetItemsQuery(periodMonth)
-  const summary = useGetBudgetSummaryQuery(periodMonth)
-  const refreshing = items.isFetching || summary.isFetching
+  // Presupuestos del mes (varios, con nombre). El backend garantiza ≥1 (el default).
+  const budgets = useGetBudgetsQuery(periodMonth)
+  const budgetList = budgets.data ?? []
+  const [pickedId, setPickedId] = useState(null)
+  // Id efectivo derivado: la elección del usuario si sigue siendo válida, si no el default.
+  const selectedId = budgetList.some((b) => b.id === pickedId) ? pickedId : (budgetList[0]?.id ?? null)
+  const selectedBudget = budgetList.find((b) => b.id === selectedId) ?? null
+  const [createBudget] = useCreateBudgetMutation()
+  const [deleteBudget] = useDeleteBudgetMutation()
+
+  const items = useGetBudgetItemsQuery(selectedId, { skip: !selectedId })
+  const summary = useGetBudgetSummaryQuery(selectedId, { skip: !selectedId })
+  const refreshing = budgets.isFetching || items.isFetching || summary.isFetching
   const [deleteItem] = useDeleteBudgetItemMutation()
   const [addOpen, setAddOpen] = useState(false)
+
+  async function handleNewBudget() {
+    // ponytail: prompt nativo para el nombre; un diálogo propio sería más código sin valor.
+    const name = window.prompt('Nombre del nuevo presupuesto')?.trim()
+    if (!name) return
+    try {
+      const created = await createBudget({ name, period_month: periodMonth }).unwrap()
+      setPickedId(created.id)
+      toast.success('Presupuesto creado')
+    } catch (err) {
+      toast.error(err?.message ?? 'No se pudo crear')
+    }
+  }
+
+  async function handleDeleteBudget() {
+    if (!selectedBudget || selectedBudget.is_default) return
+    if (!window.confirm(`¿Eliminar "${selectedBudget.name}" y sus ítems?`)) return
+    try {
+      await deleteBudget(selectedBudget.id).unwrap()
+      setPickedId(null) // vuelve a derivar el default
+      toast.success('Presupuesto eliminado')
+    } catch (err) {
+      toast.error(err?.message ?? 'No se pudo eliminar')
+    }
+  }
 
   // Conversión display-only: no toca ningún dato guardado.
   const [displayCurrency, setDisplayCurrency] = useState(ORIGINAL)
@@ -83,6 +121,7 @@ export function BudgetView() {
             <Button
               variant="outline"
               onClick={() => {
+                budgets.refetch()
                 items.refetch()
                 summary.refetch()
               }}
@@ -91,7 +130,7 @@ export function BudgetView() {
               <ArrowsClockwise className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               Actualizar
             </Button>
-            <Button onClick={() => setAddOpen(true)}>
+            <Button onClick={() => setAddOpen(true)} disabled={!selectedId}>
               <Plus className="h-4 w-4" />
               Ítem
             </Button>
@@ -110,6 +149,38 @@ export function BudgetView() {
         <Button variant="ghost" size="icon" onClick={() => shiftMonth(1)} aria-label="Mes siguiente">
           <CaretRight className="h-5 w-5" />
         </Button>
+      </div>
+
+      {/* Presupuestos del mes (varios, con nombre) */}
+      <div className="mb-6 flex items-center justify-center gap-2 text-sm">
+        <span className="text-muted-foreground">Presupuesto</span>
+        <Select value={selectedId ?? ''} onValueChange={setPickedId} disabled={!budgetList.length}>
+          <SelectTrigger className="h-8 w-48">
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent>
+            {budgetList.map((b) => (
+              <SelectItem key={b.id} value={b.id}>
+                {b.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={handleNewBudget}>
+          <Plus className="h-4 w-4" />
+          Nuevo
+        </Button>
+        {selectedBudget && !selectedBudget.is_default && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+            aria-label="Eliminar presupuesto"
+            onClick={handleDeleteBudget}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Moneda de visualización (display-only, no altera datos guardados) */}
@@ -248,7 +319,7 @@ export function BudgetView() {
         </CardContent>
       </Card>
 
-      <AddBudgetItemDialog open={addOpen} onOpenChange={setAddOpen} periodMonth={periodMonth} />
+      <AddBudgetItemDialog open={addOpen} onOpenChange={setAddOpen} budgetId={selectedId} />
     </>
   )
 }

@@ -3,9 +3,70 @@ import { HttpError } from '../../utils/http-error.js'
 import { normalizeMonthStart } from '../../utils/money.js'
 import { ensureRowExists, ensureSubscriptionOwner, ensureInstallmentOwner } from '../../utils/ensure.js'
 
-// ── Items (manuales + generados por el sistema) ──────────
-export function listBudgetItems(userId, periodMonthRaw) {
+// ── Presupuestos (varios por mes, con nombre) ────────────
+async function getBudgetOr404(userId, budgetId) {
+  const rows = await sql`
+    SELECT id, period_month, is_default FROM public.budgets
+    WHERE id = ${budgetId} AND user_id = ${userId}
+  `
+  if (!rows[0]) throw new HttpError(404, 'Budget not found')
+  return rows[0]
+}
+
+export async function listBudgets(userId, periodMonthRaw) {
   const periodMonth = normalizeMonthStart(periodMonthRaw || new Date().toISOString().slice(0, 7))
+  // Garantizamos un default por mes para que los fijos del mes siempre se vean
+  // (el índice único budgets_one_default_per_month evita duplicados en carreras).
+  await sql`
+    INSERT INTO public.budgets (user_id, name, period_month, is_default)
+    SELECT ${userId}, 'Presupuesto', ${periodMonth}, true
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.budgets
+      WHERE user_id = ${userId} AND period_month = ${periodMonth} AND is_default
+    )
+  `
+  return sql`
+    SELECT id, name, period_month, is_default, created_at FROM public.budgets
+    WHERE user_id = ${userId} AND period_month = ${periodMonth}
+    ORDER BY is_default DESC, created_at ASC
+  `
+}
+
+export async function createBudget(userId, payload) {
+  const periodMonth = normalizeMonthStart(payload.period_month)
+  const rows = await sql`
+    INSERT INTO public.budgets (user_id, name, period_month)
+    VALUES (${userId}, ${payload.name.trim()}, ${periodMonth})
+    RETURNING id, name, period_month, is_default, created_at
+  `
+  return rows[0]
+}
+
+export async function renameBudget(userId, id, name) {
+  const rows = await sql`
+    UPDATE public.budgets SET name = ${name.trim()}
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING id, name, period_month, is_default, created_at
+  `
+  if (!rows[0]) throw new HttpError(404, 'Budget not found')
+  return rows[0]
+}
+
+export async function deleteBudget(userId, id) {
+  // El default no se borra: es el dueño de los fijos del mes (y se recrea solo).
+  const rows = await sql`
+    DELETE FROM public.budgets
+    WHERE id = ${id} AND user_id = ${userId} AND NOT is_default
+    RETURNING id
+  `
+  if (rows.length === 0) throw new HttpError(404, 'Budget not found or is default')
+}
+
+// ── Items (manuales + generados por el sistema) ──────────
+export async function listBudgetItems(userId, budgetId) {
+  const budget = await getBudgetOr404(userId, budgetId)
+  const periodMonth = budget.period_month
+  const isDefault = budget.is_default // los fijos del sistema solo van en el default del mes
   return sql`
     WITH params AS (
       SELECT
@@ -21,7 +82,7 @@ export function listBudgetItems(userId, periodMonthRaw) {
         NULL::jsonb AS details, false AS paid, NULL::date AS paid_date, NULL::text AS payment_kind,
         bi.id::text AS source_id, 0 AS sort_bucket
       FROM public.budget_items bi
-      WHERE bi.user_id = ${userId} AND bi.period_month = ${periodMonth}
+      WHERE bi.user_id = ${userId} AND bi.budget_id = ${budget.id}
     ),
     pending_subscription_items AS (
       SELECT ('system-subscription-' || s.id::text)::text AS id, ${userId}::bigint AS user_id, p.month_start AS period_month,
@@ -33,7 +94,7 @@ export function listBudgetItems(userId, periodMonthRaw) {
         (SELECT sp.payment_date FROM public.subscription_payments sp WHERE sp.subscription_id = s.id AND sp.period_month = p.month_start LIMIT 1) AS paid_date,
         'SUBSCRIPTION'::text AS payment_kind, s.id::text AS source_id, 1 AS sort_bucket
       FROM public.subscriptions s CROSS JOIN params p
-      WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
+      WHERE ${isDefault} AND s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
     ),
     pending_installment_items AS (
@@ -46,7 +107,7 @@ export function listBudgetItems(userId, periodMonthRaw) {
         (SELECT ip.payment_date FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date BETWEEN p.month_start AND p.month_end LIMIT 1) AS paid_date,
         'INSTALLMENT'::text AS payment_kind, i.id::text AS source_id, 2 AS sort_bucket
       FROM public.installments i CROSS JOIN params p
-      WHERE i.user_id = ${userId} AND i.status = 'ACTIVE' AND i.start_date <= p.month_end
+      WHERE ${isDefault} AND i.user_id = ${userId} AND i.status = 'ACTIVE' AND i.start_date <= p.month_end
         AND (i.total_installments - i.paid_installments_initial
           - COALESCE((SELECT COUNT(*)::int FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date <= p.prev_month_end), 0)
           - COALESCE((SELECT SUM(iap.installments_count)::int FROM public.installment_advance_payments iap WHERE iap.installment_id = i.id AND iap.applies_from_month <= p.prev_month_start), 0)
@@ -70,16 +131,16 @@ async function validateItemRefs(userId, subscriptionId, installmentId) {
 }
 
 export async function createBudgetItem(userId, payload) {
-  const periodMonth = normalizeMonthStart(payload.period_month)
+  const budget = await getBudgetOr404(userId, payload.budget_id) // period_month se deriva del budget
   await validateItemRefs(userId, payload.subscription_id || null, payload.installment_id || null)
   const rows = await sql`
     INSERT INTO public.budget_items
-      (user_id, period_month, label, amount, flow_type, currency_code, item_type, subscription_id, installment_id)
+      (user_id, budget_id, period_month, label, amount, flow_type, currency_code, item_type, subscription_id, installment_id)
     VALUES
-      (${userId}, ${periodMonth}, ${payload.label.trim()}, ${payload.amount}, ${payload.flow_type},
+      (${userId}, ${budget.id}, ${budget.period_month}, ${payload.label.trim()}, ${payload.amount}, ${payload.flow_type},
        ${String(payload.currency_code || 'ARS').toUpperCase()}, ${payload.item_type},
        ${payload.subscription_id || null}, ${payload.installment_id || null})
-    RETURNING id, user_id, period_month, label, amount, flow_type, currency_code, item_type,
+    RETURNING id, user_id, budget_id, period_month, label, amount, flow_type, currency_code, item_type,
               subscription_id, installment_id, created_at, updated_at
   `
   return rows[0]
@@ -87,15 +148,15 @@ export async function createBudgetItem(userId, payload) {
 
 export async function updateBudgetItem(userId, id, payload) {
   await ensureRowExists(sql`SELECT id FROM public.budget_items WHERE id = ${id} AND user_id = ${userId}`, 'Budget item not found')
-  const periodMonth = normalizeMonthStart(payload.period_month)
   await validateItemRefs(userId, payload.subscription_id || null, payload.installment_id || null)
+  // El item no cambia de presupuesto/mes: solo se editan sus campos.
   const rows = await sql`
     UPDATE public.budget_items SET
-      period_month = ${periodMonth}, label = ${payload.label.trim()}, amount = ${payload.amount},
+      label = ${payload.label.trim()}, amount = ${payload.amount},
       flow_type = ${payload.flow_type}, currency_code = ${String(payload.currency_code || 'ARS').toUpperCase()},
       item_type = ${payload.item_type}, subscription_id = ${payload.subscription_id || null}, installment_id = ${payload.installment_id || null}
     WHERE id = ${id} AND user_id = ${userId}
-    RETURNING id, user_id, period_month, label, amount, flow_type, currency_code, item_type,
+    RETURNING id, user_id, budget_id, period_month, label, amount, flow_type, currency_code, item_type,
               subscription_id, installment_id, created_at, updated_at
   `
   return rows[0]
@@ -107,8 +168,10 @@ export async function deleteBudgetItem(userId, id) {
 }
 
 // ── Summary ──────────────────────────────────────────────
-export function getBudgetSummary(userId, periodMonthRaw) {
-  const periodMonth = normalizeMonthStart(periodMonthRaw || new Date().toISOString().slice(0, 7))
+export async function getBudgetSummary(userId, budgetId) {
+  const budget = await getBudgetOr404(userId, budgetId)
+  const periodMonth = budget.period_month
+  const isDefault = budget.is_default // la deuda fija solo cuenta en el default del mes
   return sql`
     WITH params AS (
       SELECT ${periodMonth}::date AS month_start,
@@ -119,7 +182,7 @@ export function getBudgetSummary(userId, periodMonthRaw) {
     subscription_debt AS (
       SELECT s.currency_code, SUM(s.default_amount) AS total_subscription_debt
       FROM public.subscriptions s CROSS JOIN params p
-      WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
+      WHERE ${isDefault} AND s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
       GROUP BY s.currency_code
     ),
@@ -130,7 +193,7 @@ export function getBudgetSummary(userId, periodMonthRaw) {
           - COALESCE((SELECT SUM(iap.installments_count)::int FROM public.installment_advance_payments iap WHERE iap.installment_id = i.id AND iap.applies_from_month <= p.prev_month_start), 0)
         ) > 0 THEN i.default_amount ELSE 0 END) AS total_installment_debt
       FROM public.installments i CROSS JOIN params p
-      WHERE i.user_id = ${userId} AND i.status = 'ACTIVE'
+      WHERE ${isDefault} AND i.user_id = ${userId} AND i.status = 'ACTIVE'
       GROUP BY i.currency_code
     ),
     hypothetical_items AS (
@@ -138,7 +201,7 @@ export function getBudgetSummary(userId, periodMonthRaw) {
         SUM(CASE WHEN bi.flow_type = 'EXPENSE' THEN bi.amount ELSE 0 END) AS total_hypothetical_expense,
         SUM(CASE WHEN bi.flow_type = 'INCOME' THEN bi.amount ELSE 0 END) AS total_hypothetical_income
       FROM public.budget_items bi CROSS JOIN params p
-      WHERE bi.user_id = ${userId} AND bi.period_month = p.month_start
+      WHERE bi.user_id = ${userId} AND bi.budget_id = ${budget.id}
       GROUP BY bi.currency_code
     ),
     all_currencies AS (

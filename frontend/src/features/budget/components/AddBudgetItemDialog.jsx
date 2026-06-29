@@ -16,7 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CurrencySelect } from '@/components/common/EntitySelects'
 import { useCreateBudgetItemMutation } from '../budgetApi'
 
-function BudgetItemForm({ periodMonth, onClose }) {
+function BudgetItemForm({ budgetId, onClose }) {
   const [createItem, { isLoading }] = useCreateBudgetItemMutation()
   const [form, setForm] = useState({
     label: '',
@@ -54,7 +54,7 @@ function BudgetItemForm({ periodMonth, onClose }) {
       const label = `Cambio ${form.out_currency}→${form.in_currency}: ${form.label.trim()}`
       try {
         await createItem({
-          period_month: periodMonth,
+          budget_id: budgetId,
           label,
           amount: out,
           currency_code: form.out_currency,
@@ -62,7 +62,7 @@ function BudgetItemForm({ periodMonth, onClose }) {
           item_type: 'ONE_TIME',
         }).unwrap()
         await createItem({
-          period_month: periodMonth,
+          budget_id: budgetId,
           label,
           amount: inn,
           currency_code: form.in_currency,
@@ -83,7 +83,7 @@ function BudgetItemForm({ periodMonth, onClose }) {
     }
     try {
       await createItem({
-        period_month: periodMonth,
+        budget_id: budgetId,
         label: form.label.trim(),
         amount: Number(form.amount),
         currency_code: form.currency_code,
@@ -200,11 +200,11 @@ function BudgetItemForm({ periodMonth, onClose }) {
   )
 }
 
-export function AddBudgetItemDialog({ open, onOpenChange, periodMonth }) {
+export function AddBudgetItemDialog({ open, onOpenChange, budgetId }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        {open && <BudgetItemForm periodMonth={periodMonth} onClose={() => onOpenChange(false)} />}
+        {open && <BudgetItemForm budgetId={budgetId} onClose={() => onOpenChange(false)} />}
       </DialogContent>
     </Dialog>
   )
