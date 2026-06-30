@@ -66,7 +66,8 @@ export async function deleteBudget(userId, id) {
 export async function listBudgetItems(userId, budgetId) {
   const budget = await getBudgetOr404(userId, budgetId)
   const periodMonth = budget.period_month
-  const isDefault = budget.is_default // los fijos del sistema solo van en el default del mes
+  // Los fijos del sistema se derivan por el MES del presupuesto y aparecen en
+  // todos los presupuestos de ese mes; los manuales son propios de cada budget_id.
   return sql`
     WITH params AS (
       SELECT
@@ -94,7 +95,7 @@ export async function listBudgetItems(userId, budgetId) {
         (SELECT sp.payment_date FROM public.subscription_payments sp WHERE sp.subscription_id = s.id AND sp.period_month = p.month_start LIMIT 1) AS paid_date,
         'SUBSCRIPTION'::text AS payment_kind, s.id::text AS source_id, 1 AS sort_bucket
       FROM public.subscriptions s CROSS JOIN params p
-      WHERE ${isDefault} AND s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
+      WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
     ),
     pending_installment_items AS (
@@ -107,7 +108,7 @@ export async function listBudgetItems(userId, budgetId) {
         (SELECT ip.payment_date FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date BETWEEN p.month_start AND p.month_end LIMIT 1) AS paid_date,
         'INSTALLMENT'::text AS payment_kind, i.id::text AS source_id, 2 AS sort_bucket
       FROM public.installments i CROSS JOIN params p
-      WHERE ${isDefault} AND i.user_id = ${userId} AND i.status = 'ACTIVE' AND i.start_date <= p.month_end
+      WHERE i.user_id = ${userId} AND i.status = 'ACTIVE' AND i.start_date <= p.month_end
         AND (i.total_installments - i.paid_installments_initial
           - COALESCE((SELECT COUNT(*)::int FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date <= p.prev_month_end), 0)
           - COALESCE((SELECT SUM(iap.installments_count)::int FROM public.installment_advance_payments iap WHERE iap.installment_id = i.id AND iap.applies_from_month <= p.prev_month_start), 0)
@@ -171,7 +172,7 @@ export async function deleteBudgetItem(userId, id) {
 export async function getBudgetSummary(userId, budgetId) {
   const budget = await getBudgetOr404(userId, budgetId)
   const periodMonth = budget.period_month
-  const isDefault = budget.is_default // la deuda fija solo cuenta en el default del mes
+  // La deuda fija se deriva por el MES del presupuesto y cuenta en todos los del mes.
   return sql`
     WITH params AS (
       SELECT ${periodMonth}::date AS month_start,
@@ -182,7 +183,7 @@ export async function getBudgetSummary(userId, budgetId) {
     subscription_debt AS (
       SELECT s.currency_code, SUM(s.default_amount) AS total_subscription_debt
       FROM public.subscriptions s CROSS JOIN params p
-      WHERE ${isDefault} AND s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
+      WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
       GROUP BY s.currency_code
     ),
@@ -193,7 +194,7 @@ export async function getBudgetSummary(userId, budgetId) {
           - COALESCE((SELECT SUM(iap.installments_count)::int FROM public.installment_advance_payments iap WHERE iap.installment_id = i.id AND iap.applies_from_month <= p.prev_month_start), 0)
         ) > 0 THEN i.default_amount ELSE 0 END) AS total_installment_debt
       FROM public.installments i CROSS JOIN params p
-      WHERE ${isDefault} AND i.user_id = ${userId} AND i.status = 'ACTIVE'
+      WHERE i.user_id = ${userId} AND i.status = 'ACTIVE'
       GROUP BY i.currency_code
     ),
     hypothetical_items AS (
