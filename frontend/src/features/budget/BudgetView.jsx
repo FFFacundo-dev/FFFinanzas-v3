@@ -1,48 +1,33 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, CaretLeft, CaretRight, ArrowsClockwise } from '@phosphor-icons/react'
+import { Plus, ArrowsClockwise } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { toInputDate } from '@/lib/format'
 import { useGetBudgetsQuery, useCreateBudgetMutation } from './budgetApi'
 import { BudgetCard } from './components/BudgetCard'
 import { BudgetDetailDialog } from './components/BudgetDetailDialog'
 import { BudgetNameDialog } from './components/BudgetNameDialog'
 
-const monthLabelFmt = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
-
 export function BudgetView() {
-  const [month, setMonth] = useState(() => {
-    const d = new Date()
-    d.setDate(1)
-    return d
-  })
-  const periodMonth = `${toInputDate(month).slice(0, 7)}-01`
-
-  // Presupuestos del mes (varios, con nombre). El backend garantiza ≥1 (el default).
-  const budgets = useGetBudgetsQuery(periodMonth)
+  // Todos los presupuestos del usuario (de cualquier mes).
+  const budgets = useGetBudgetsQuery()
   const budgetList = budgets.data ?? []
   const [createBudget, { isLoading: creating }] = useCreateBudgetMutation()
   const [detailId, setDetailId] = useState(null)
   const [newOpen, setNewOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const detailBudget = budgetList.find((b) => b.id === detailId) ?? null
 
-  function shiftMonth(delta) {
-    setMonth((m) => {
-      const d = new Date(m)
-      d.setMonth(d.getMonth() + delta)
-      return d
-    })
-  }
+  const term = search.trim().toLowerCase()
+  const visible = term ? budgetList.filter((b) => b.name.toLowerCase().includes(term)) : budgetList
 
-  async function handleCreateBudget(name, chosenPeriodMonth) {
-    const period_month = chosenPeriodMonth ?? periodMonth
+  async function handleCreateBudget(name, period_month) {
     try {
       await createBudget({ name, period_month }).unwrap()
       setNewOpen(false)
-      setMonth(new Date(`${period_month}T00:00:00`)) // navegar al mes elegido para verlo
       toast.success('Presupuesto creado')
     } catch (err) {
       toast.error(err?.message ?? 'No se pudo crear')
@@ -62,20 +47,18 @@ export function BudgetView() {
         }
       />
 
-      {/* Navegación de mes */}
-      <div className="mb-6 flex items-center justify-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => shiftMonth(-1)} aria-label="Mes anterior">
-          <CaretLeft className="h-5 w-5" />
-        </Button>
-        <span className="min-w-44 text-center font-display text-lg capitalize text-foreground">
-          {monthLabelFmt.format(month)}
-        </span>
-        <Button variant="ghost" size="icon" onClick={() => shiftMonth(1)} aria-label="Mes siguiente">
-          <CaretRight className="h-5 w-5" />
-        </Button>
+      {/* Buscador por nombre */}
+      <div className="mb-6">
+        <Input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar presupuesto por nombre…"
+          className="max-w-sm"
+        />
       </div>
 
-      {/* Cards de presupuestos del mes */}
+      {/* Cards de todos los presupuestos */}
       {budgets.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -84,7 +67,7 @@ export function BudgetView() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {budgetList.map((b) => (
+          {visible.map((b) => (
             <BudgetCard key={b.id} budget={b} onOpen={() => setDetailId(b.id)} />
           ))}
           <button
@@ -115,7 +98,7 @@ export function BudgetView() {
         title="Nuevo presupuesto"
         submitLabel="Crear"
         withMonth
-        initialMonth={periodMonth.slice(0, 7)}
+        initialMonth={new Date().toISOString().slice(0, 7)}
         submitting={creating}
         onSubmit={handleCreateBudget}
       />

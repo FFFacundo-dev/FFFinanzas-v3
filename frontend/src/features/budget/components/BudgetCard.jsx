@@ -1,24 +1,34 @@
+import { toast } from 'sonner'
+import { Copy } from '@phosphor-icons/react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
-import { useGetBudgetSummaryQuery } from '../budgetApi'
+import { useGetBudgetSummaryQuery, useDuplicateBudgetMutation } from '../budgetApi'
 
-// Card por presupuesto: nombre + balance proyectado por moneda. Click → modal de detalle.
+const monthLabelFmt = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
+const monthLabel = (periodMonth) => monthLabelFmt.format(new Date(`${String(periodMonth).slice(0, 10)}T00:00:00`))
+
+// Card por presupuesto: nombre + mes + balance proyectado por moneda. Click → modal de detalle.
 export function BudgetCard({ budget, onOpen }) {
   const { data: summaryRows = [], isLoading } = useGetBudgetSummaryQuery(budget.id)
+  const [duplicate, { isLoading: duplicating }] = useDuplicateBudgetMutation()
+
+  async function handleDuplicate() {
+    try {
+      await duplicate(budget.id).unwrap()
+      toast.success('Presupuesto duplicado')
+    } catch (err) {
+      toast.error(err?.message ?? 'No se pudo duplicar')
+    }
+  }
 
   return (
-    <button type="button" onClick={() => onOpen(budget)} className="block w-full text-left">
-      <Card className="h-full shadow-subtle transition hover:border-primary/60">
-        <CardContent className="py-4">
-          <div className="flex items-start justify-between gap-2">
-            <p className="truncate font-medium text-foreground">{budget.name}</p>
-            {budget.is_default && (
-              <Badge variant="secondary" className="shrink-0 rounded-sm font-normal">
-                Por defecto
-              </Badge>
-            )}
-          </div>
+    <div className="relative">
+      <button type="button" onClick={() => onOpen(budget)} className="block w-full text-left">
+        <Card className="h-full shadow-subtle transition hover:border-primary/60">
+          <CardContent className="py-4">
+            <p className="truncate pr-9 font-medium text-foreground">{budget.name}</p>
+            <p className="text-xs capitalize text-muted-foreground">{monthLabel(budget.period_month)}</p>
 
           <p className="mt-3 text-xs text-muted-foreground">Balance proyectado</p>
           <div className="mt-1 space-y-1">
@@ -51,6 +61,18 @@ export function BudgetCard({ budget, onOpen }) {
           <p className="mt-3 text-xs text-primary">Ver detalle →</p>
         </CardContent>
       </Card>
-    </button>
+      </button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-2 top-2 h-8 w-8 text-muted-foreground"
+        onClick={handleDuplicate}
+        disabled={duplicating}
+        aria-label="Duplicar presupuesto"
+      >
+        <Copy className="h-4 w-4" />
+      </Button>
+    </div>
   )
 }

@@ -110,17 +110,15 @@ function BudgetDetail({ budget, onClose }) {
           <PencilSimple className="h-4 w-4" />
           Renombrar
         </Button>
-        {!budget.is_default && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive hover:text-destructive"
-            onClick={() => setConfirmOpen(true)}
-          >
-            <Trash className="h-4 w-4" />
-            Eliminar
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-destructive hover:text-destructive"
+          onClick={() => setConfirmOpen(true)}
+        >
+          <Trash className="h-4 w-4" />
+          Eliminar
+        </Button>
         <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
           <SelectTrigger className="ml-auto h-8 w-40">
             <SelectValue />

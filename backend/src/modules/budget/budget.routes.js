@@ -8,12 +8,16 @@ const router = Router()
 
 // ── Presupuestos (varios por mes, con nombre) ──
 router.get('/budgets', asyncHandler(async (req, res) => {
-  const data = await service.listBudgets(req.auth.userId, req.query.period_month)
+  const data = await service.listBudgets(req.auth.userId)
   res.json({ ok: true, data })
 }))
 
 router.post('/budgets', validateBody(budgetSchema), asyncHandler(async (req, res) => {
   res.status(201).json({ ok: true, data: await service.createBudget(req.auth.userId, req.validated.body) })
+}))
+
+router.post('/budgets/:id/duplicate', asyncHandler(async (req, res) => {
+  res.status(201).json({ ok: true, data: await service.duplicateBudget(req.auth.userId, req.params.id) })
 }))
 
 router.put('/budgets/:id', validateBody(budgetRenameSchema), asyncHandler(async (req, res) => {

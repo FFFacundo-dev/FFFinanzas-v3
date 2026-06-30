@@ -3,12 +3,16 @@ import { apiSlice } from '@/app/apiSlice'
 export const budgetApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBudgets: builder.query({
-      query: (periodMonth) => ({ url: '/budget/budgets', params: { period_month: periodMonth } }),
+      query: () => ({ url: '/budget/budgets' }),
       transformResponse: (res) => res.data,
       providesTags: ['Budget'],
     }),
     createBudget: builder.mutation({
       query: (body) => ({ url: '/budget/budgets', method: 'POST', body }),
+      invalidatesTags: ['Budget'],
+    }),
+    duplicateBudget: builder.mutation({
+      query: (id) => ({ url: `/budget/budgets/${id}/duplicate`, method: 'POST' }),
       invalidatesTags: ['Budget'],
     }),
     renameBudget: builder.mutation({
@@ -56,6 +60,7 @@ export const budgetApi = apiSlice.injectEndpoints({
 export const {
   useGetBudgetsQuery,
   useCreateBudgetMutation,
+  useDuplicateBudgetMutation,
   useRenameBudgetMutation,
   useDeleteBudgetMutation,
   useGetBudgetItemsQuery,

@@ -13,22 +13,12 @@ async function getBudgetOr404(userId, budgetId) {
   return rows[0]
 }
 
-export async function listBudgets(userId, periodMonthRaw) {
-  const periodMonth = normalizeMonthStart(periodMonthRaw || new Date().toISOString().slice(0, 7))
-  // Garantizamos un default por mes para que los fijos del mes siempre se vean
-  // (el índice único budgets_one_default_per_month evita duplicados en carreras).
-  await sql`
-    INSERT INTO public.budgets (user_id, name, period_month, is_default)
-    SELECT ${userId}, 'Presupuesto', ${periodMonth}, true
-    WHERE NOT EXISTS (
-      SELECT 1 FROM public.budgets
-      WHERE user_id = ${userId} AND period_month = ${periodMonth} AND is_default
-    )
-  `
+export async function listBudgets(userId) {
+  // Todos los presupuestos del usuario, sin filtro de mes ni autocreación.
   return sql`
     SELECT id, name, period_month, is_default, created_at FROM public.budgets
-    WHERE user_id = ${userId} AND period_month = ${periodMonth}
-    ORDER BY is_default DESC, created_at ASC
+    WHERE user_id = ${userId}
+    ORDER BY period_month DESC, created_at ASC
   `
 }
 
@@ -42,6 +32,28 @@ export async function createBudget(userId, payload) {
   return rows[0]
 }
 
+export async function duplicateBudget(userId, id) {
+  return sql.begin(async (sql) => {
+    const src = await sql`
+      SELECT name, period_month FROM public.budgets WHERE id = ${id} AND user_id = ${userId}
+    `
+    if (!src[0]) throw new HttpError(404, 'Budget not found')
+    const [copy] = await sql`
+      INSERT INTO public.budgets (user_id, name, period_month)
+      VALUES (${userId}, ${`${src[0].name} (copia)`}, ${src[0].period_month})
+      RETURNING id, name, period_month, is_default, created_at
+    `
+    // Copia solo los ítems manuales (los fijos del sistema se derivan solos por mes).
+    await sql`
+      INSERT INTO public.budget_items
+        (user_id, budget_id, period_month, label, amount, flow_type, currency_code, item_type, subscription_id, installment_id)
+      SELECT user_id, ${copy.id}, period_month, label, amount, flow_type, currency_code, item_type, subscription_id, installment_id
+      FROM public.budget_items WHERE user_id = ${userId} AND budget_id = ${id}
+    `
+    return copy
+  })
+}
+
 export async function renameBudget(userId, id, name) {
   const rows = await sql`
     UPDATE public.budgets SET name = ${name.trim()}
@@ -53,13 +65,12 @@ export async function renameBudget(userId, id, name) {
 }
 
 export async function deleteBudget(userId, id) {
-  // El default no se borra: es el dueño de los fijos del mes (y se recrea solo).
   const rows = await sql`
     DELETE FROM public.budgets
-    WHERE id = ${id} AND user_id = ${userId} AND NOT is_default
+    WHERE id = ${id} AND user_id = ${userId}
     RETURNING id
   `
-  if (rows.length === 0) throw new HttpError(404, 'Budget not found or is default')
+  if (rows.length === 0) throw new HttpError(404, 'Budget not found')
 }
 
 // ── Items (manuales + generados por el sistema) ──────────
