@@ -37,10 +37,12 @@ export function BudgetView() {
     })
   }
 
-  async function handleCreateBudget(name) {
+  async function handleCreateBudget(name, chosenPeriodMonth) {
+    const period_month = chosenPeriodMonth ?? periodMonth
     try {
-      await createBudget({ name, period_month: periodMonth }).unwrap()
+      await createBudget({ name, period_month }).unwrap()
       setNewOpen(false)
+      setMonth(new Date(`${period_month}T00:00:00`)) // navegar al mes elegido para verlo
       toast.success('Presupuesto creado')
     } catch (err) {
       toast.error(err?.message ?? 'No se pudo crear')
@@ -112,6 +114,8 @@ export function BudgetView() {
         onOpenChange={setNewOpen}
         title="Nuevo presupuesto"
         submitLabel="Crear"
+        withMonth
+        initialMonth={periodMonth.slice(0, 7)}
         submitting={creating}
         onSubmit={handleCreateBudget}
       />

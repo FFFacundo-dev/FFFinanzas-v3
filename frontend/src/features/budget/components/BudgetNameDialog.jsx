@@ -11,13 +11,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 // Diálogo de nombre reutilizable para crear/renombrar un presupuesto.
-function NameForm({ initialName, submitLabel, submitting, onSubmit, onClose }) {
+// withMonth: en "crear" se pide también el mes (input month nativo).
+function NameForm({ initialName, initialMonth, withMonth, submitLabel, submitting, onSubmit, onClose }) {
   const [name, setName] = useState(initialName)
+  const [month, setMonth] = useState(initialMonth) // 'YYYY-MM'
   const trimmed = name.trim()
 
   function handleSubmit(e) {
     e.preventDefault()
-    if (trimmed) onSubmit(trimmed)
+    if (trimmed) onSubmit(trimmed, withMonth && month ? `${month}-01` : undefined)
   }
 
   return (
@@ -32,11 +34,22 @@ function NameForm({ initialName, submitLabel, submitting, onSubmit, onClose }) {
           placeholder="Ej. Junio ahorro"
         />
       </div>
+      {withMonth && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="budget-month">Mes</Label>
+          <Input
+            id="budget-month"
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
+        </div>
+      )}
       <DialogFooter>
         <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={submitting || !trimmed}>
+        <Button type="submit" disabled={submitting || !trimmed || (withMonth && !month)}>
           {submitting ? 'Guardando…' : submitLabel}
         </Button>
       </DialogFooter>
@@ -49,6 +62,8 @@ export function BudgetNameDialog({
   onOpenChange,
   title,
   initialName = '',
+  initialMonth = '',
+  withMonth = false,
   submitLabel = 'Guardar',
   submitting = false,
   onSubmit,
@@ -63,6 +78,8 @@ export function BudgetNameDialog({
             </DialogHeader>
             <NameForm
               initialName={initialName}
+              initialMonth={initialMonth}
+              withMonth={withMonth}
               submitLabel={submitLabel}
               submitting={submitting}
               onSubmit={onSubmit}
