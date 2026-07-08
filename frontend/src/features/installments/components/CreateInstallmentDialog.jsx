@@ -114,7 +114,7 @@ function InstallmentForm({ onClose }) {
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="inst-total">Total</Label>
             <MoneyInput
@@ -179,7 +179,7 @@ function InstallmentForm({ onClose }) {
           </p>
         )}
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label>Categoría</Label>
             <CategorySelect value={form.category_id} onChange={(v) => set('category_id', v)} />
@@ -190,7 +190,7 @@ function InstallmentForm({ onClose }) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="inst-start">Inicio</Label>
             <Input

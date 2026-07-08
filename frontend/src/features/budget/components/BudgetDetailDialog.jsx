@@ -152,21 +152,21 @@ function BudgetDetail({ budget, onClose }) {
                     <CardContent className="py-4">
                       <p className="font-display text-sm text-foreground">{s.currency_code}</p>
                       <dl className="mt-2 space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Fijos</dt>
-                          <dd><MoneyAmount value={fixed} currency={cur} size="sm" tone="expense" /></dd>
+                        <div className="flex justify-between gap-2">
+                          <dt className="min-w-0 truncate text-muted-foreground">Fijos</dt>
+                          <dd className="shrink-0"><MoneyAmount value={fixed} currency={cur} size="sm" tone="expense" /></dd>
                         </div>
-                        <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Gastos hipotéticos</dt>
-                          <dd><MoneyAmount value={expense} currency={cur} size="sm" tone="expense" /></dd>
+                        <div className="flex justify-between gap-2">
+                          <dt className="min-w-0 truncate text-muted-foreground">Gastos hipotéticos</dt>
+                          <dd className="shrink-0"><MoneyAmount value={expense} currency={cur} size="sm" tone="expense" /></dd>
                         </div>
-                        <div className="flex justify-between">
-                          <dt className="text-muted-foreground">Ingresos hipotéticos</dt>
-                          <dd><MoneyAmount value={income} currency={cur} size="sm" tone="income" /></dd>
+                        <div className="flex justify-between gap-2">
+                          <dt className="min-w-0 truncate text-muted-foreground">Ingresos hipotéticos</dt>
+                          <dd className="shrink-0"><MoneyAmount value={income} currency={cur} size="sm" tone="income" /></dd>
                         </div>
-                        <div className="flex justify-between border-t border-border pt-1">
-                          <dt className="text-foreground">Balance proyectado</dt>
-                          <dd>
+                        <div className="flex justify-between gap-2 border-t border-border pt-1">
+                          <dt className="min-w-0 truncate text-foreground">Balance proyectado</dt>
+                          <dd className="shrink-0">
                             <MoneyAmount
                               value={Math.abs(net)}
                               currency={cur}

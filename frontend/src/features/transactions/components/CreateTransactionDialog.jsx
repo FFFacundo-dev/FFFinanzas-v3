@@ -129,7 +129,7 @@ function TransactionForm({ transaction, movementType, onClose }) {
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="amount">Monto</Label>
             <MoneyInput

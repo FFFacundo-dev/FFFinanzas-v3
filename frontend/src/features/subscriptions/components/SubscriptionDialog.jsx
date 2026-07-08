@@ -124,7 +124,7 @@ function SubscriptionForm({ subscription, onClose }) {
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="sub-amount">Monto mensual</Label>
             <MoneyInput
@@ -141,7 +141,7 @@ function SubscriptionForm({ subscription, onClose }) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label>Categoría</Label>
             <CategorySelect value={form.category_id} onChange={(v) => set('category_id', v)} />
@@ -152,7 +152,7 @@ function SubscriptionForm({ subscription, onClose }) {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex w-28 flex-col gap-1.5">
             <Label htmlFor="sub-day">Día de cobro</Label>
             <Input

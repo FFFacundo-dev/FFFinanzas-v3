@@ -118,7 +118,7 @@ function GoalForm({ goal, onClose }) {
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="goal-target">Objetivo (opcional)</Label>
             <MoneyInput

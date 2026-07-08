@@ -132,7 +132,7 @@ function BudgetItemForm({ budgetId, onClose }) {
 
         {isChange ? (
           <>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label htmlFor="bi-out-amount">Sale</Label>
                 <MoneyInput
@@ -149,7 +149,7 @@ function BudgetItemForm({ budgetId, onClose }) {
                 <CurrencySelect value={form.out_currency} onChange={(v) => set('out_currency', v)} />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label htmlFor="bi-in-amount">Entra</Label>
                 <MoneyInput
@@ -168,7 +168,7 @@ function BudgetItemForm({ budgetId, onClose }) {
             </div>
           </>
         ) : (
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <div className="flex flex-1 flex-col gap-1.5">
               <Label htmlFor="bi-amount">Monto</Label>
               <MoneyInput
