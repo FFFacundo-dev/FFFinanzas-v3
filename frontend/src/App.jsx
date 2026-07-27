@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
-import { selectIsAuthenticated } from '@/features/auth/authSlice'
+import { selectIsAuthenticated, clearCredentials } from '@/features/auth/authSlice'
 import { selectTheme } from '@/features/ui/uiSlice'
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthPage } from '@/features/auth/AuthPage'
@@ -23,9 +24,35 @@ function useThemeSync() {
   }, [theme])
 }
 
+const IDLE_MS = 20 * 60 * 1000 // 20 min: desloguea por inactividad para no mostrar datos vacíos.
+
+/** Cierra la sesión tras 20 min sin actividad del usuario. */
+function useIdleLogout(isAuthenticated) {
+  const dispatch = useDispatch()
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let timer
+    const reset = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        dispatch(clearCredentials())
+        toast.info('Sesión cerrada por inactividad')
+      }, IDLE_MS)
+    }
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }))
+    reset()
+    return () => {
+      clearTimeout(timer)
+      events.forEach((e) => window.removeEventListener(e, reset))
+    }
+  }, [isAuthenticated, dispatch])
+}
+
 export default function App() {
   useThemeSync()
   const isAuthenticated = useSelector(selectIsAuthenticated)
+  useIdleLogout(isAuthenticated)
 
   return (
     <>
