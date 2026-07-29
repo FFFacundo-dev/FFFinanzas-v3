@@ -121,22 +121,13 @@ function GoalForm({ goal, onClose }) {
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label htmlFor="goal-target">Objetivo (opcional)</Label>
-            {hasChildren ? (
-              <Input
-                id="goal-target"
-                value={form.target_amount || 'Suma de las metas del grupo'}
-                disabled
-                className="font-mono tabular"
-              />
-            ) : (
-              <MoneyInput
-                id="goal-target"
-                value={form.target_amount}
-                onChange={(v) => set('target_amount', v)}
-                placeholder="Sin objetivo"
-                className="font-mono tabular"
-              />
-            )}
+            <MoneyInput
+              id="goal-target"
+              value={form.target_amount}
+              onChange={(v) => set('target_amount', v)}
+              placeholder="Sin objetivo"
+              className="font-mono tabular"
+            />
           </div>
           <div className="flex w-28 flex-col gap-1.5">
             <Label>Moneda</Label>

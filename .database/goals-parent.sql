@@ -26,12 +26,9 @@ WITH own AS (
   GROUP BY g.id
 ),
 child_agg AS (
-  -- El objetivo del padre es SIEMPRE la suma de las hijas; si alguna hija no
-  -- tiene objetivo, el padre queda sin objetivo (NULL) en vez de una suma parcial.
   SELECT c.parent_id,
          SUM(o.current_amount) AS current_amount,
-         CASE WHEN bool_or(c.target_amount IS NULL) THEN NULL
-              ELSE SUM(c.target_amount) END AS target_amount
+         SUM(c.target_amount)  AS target_amount
   FROM public.goals c
   JOIN own o ON o.id = c.id
   WHERE c.parent_id IS NOT NULL
@@ -39,14 +36,13 @@ child_agg AS (
 )
 SELECT
   g.id AS goal_id, g.user_id, g.name, g.currency_code,
-  -- Padre (ca.parent_id no nulo) → objetivo derivado de las hijas; si no, el propio.
-  CASE WHEN ca.parent_id IS NOT NULL THEN ca.target_amount ELSE g.target_amount END AS target_amount,
+  COALESCE(ca.target_amount, g.target_amount)   AS target_amount,
   g.deadline, g.status, g.created_at, g.updated_at,
   COALESCE(ca.current_amount, o.current_amount) AS current_amount,
   ( g.status <> 'ARCHIVED'
-    AND (CASE WHEN ca.parent_id IS NOT NULL THEN ca.target_amount ELSE g.target_amount END) IS NOT NULL
+    AND COALESCE(ca.target_amount, g.target_amount) IS NOT NULL
     AND COALESCE(ca.current_amount, o.current_amount)
-        >= (CASE WHEN ca.parent_id IS NOT NULL THEN ca.target_amount ELSE g.target_amount END) ) AS is_completed,
+        >= COALESCE(ca.target_amount, g.target_amount) ) AS is_completed,
   g.parent_id
 FROM public.goals g
 JOIN own o ON o.id = g.id

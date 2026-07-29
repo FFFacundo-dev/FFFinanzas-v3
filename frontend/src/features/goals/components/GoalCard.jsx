@@ -176,23 +176,7 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
               {children.map((c) => (
                 <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="truncate text-muted-foreground">{c.name}</span>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <MoneyAmount value={Number(c.current_amount)} currency={c.currency_code} size="sm" />
-                    {c.target_amount != null && (
-                      <span className="text-xs text-muted-foreground">
-                        de <span className="font-mono tabular">{Number(c.target_amount).toLocaleString('es-AR')}</span>
-                      </span>
-                    )}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 text-muted-foreground"
-                      aria-label={`Editar ${c.name}`}
-                      onClick={() => onEdit(c)}
-                    >
-                      <PencilSimple className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  <MoneyAmount value={Number(c.current_amount)} currency={c.currency_code} size="sm" />
                 </div>
               ))}
             </div>
