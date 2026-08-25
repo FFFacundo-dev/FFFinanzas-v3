@@ -27,6 +27,8 @@ export const installmentPaymentSchema = z.object({
   installment_number: z.coerce.number().int().positive(),
   amount_override: z.coerce.number().positive().nullable().optional(),
   account_id: z.string().uuid().nullable().optional(),
+  // Si viene, el pago se cubre liberando lo reservado en esa meta (misma moneda).
+  goal_id: z.string().uuid().nullable().optional(),
   payment_date: z.string().date(),
   notes: z.string().trim().max(500).nullable().optional()
 })

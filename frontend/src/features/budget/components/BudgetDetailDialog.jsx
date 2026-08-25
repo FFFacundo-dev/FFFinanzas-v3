@@ -35,6 +35,7 @@ import {
 } from '../budgetApi'
 import { AddBudgetItemDialog } from './AddBudgetItemDialog'
 import { BudgetNameDialog } from './BudgetNameDialog'
+import { BaseIncomeDialog } from './BaseIncomeDialog'
 
 const ORIGINAL = '__original__' // ver cada moneda en la suya (sin conversión)
 
@@ -47,6 +48,7 @@ function BudgetDetail({ budget, onClose }) {
   const [addOpen, setAddOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [baseOpen, setBaseOpen] = useState(false)
 
   // Conversión display-only: no toca ningún dato guardado.
   const [displayCurrency, setDisplayCurrency] = useState(ORIGINAL)
@@ -92,6 +94,7 @@ function BudgetDetail({ budget, onClose }) {
 
   const rows = items.data ?? []
   const summaryRows = summary.data ?? []
+  const baseItem = rows.find((r) => r.source_kind === 'BASE_INCOME')
 
   return (
     <>
@@ -229,7 +232,17 @@ function BudgetDetail({ budget, onClose }) {
                     />
 
                     <div className="w-8 shrink-0">
-                      {item.deletable && (
+                      {item.source_kind === 'BASE_INCOME' ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          aria-label="Editar sueldo base"
+                          onClick={() => setBaseOpen(true)}
+                        >
+                          <PencilSimple className="h-4 w-4" />
+                        </Button>
+                      ) : item.deletable ? (
                         <Button
                           size="icon"
                           variant="ghost"
@@ -239,7 +252,7 @@ function BudgetDetail({ budget, onClose }) {
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </li>
                 )
@@ -250,6 +263,14 @@ function BudgetDetail({ budget, onClose }) {
       </ScrollArea>
 
       <AddBudgetItemDialog open={addOpen} onOpenChange={setAddOpen} budgetId={budget.id} />
+
+      <BaseIncomeDialog
+        open={baseOpen}
+        onOpenChange={setBaseOpen}
+        budgetId={budget.id}
+        initialAmount={baseItem?.amount ?? 0}
+        initialScope={baseItem?.base_scope ?? 'GENERAL'}
+      />
 
       <BudgetNameDialog
         open={renameOpen}

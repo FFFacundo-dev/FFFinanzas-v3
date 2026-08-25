@@ -8,6 +8,7 @@ import {
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
 import { useGetCategoriesQuery } from '@/features/categories/categoriesApi'
 import { useGetAccountsQuery } from '@/features/accounts/accountsApi'
+import { useGetGoalsQuery } from '@/features/goals/goalsApi'
 
 export const NONE = '__none__'
 
@@ -43,6 +44,37 @@ export function CategorySelect({ value, onChange, className }) {
         {categories.map((c) => (
           <SelectItem key={c.id} value={c.id}>
             {c.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+/**
+ * Selector de meta para "pagar con dinero reservado" (value = NONE = no usar meta).
+ * Solo metas hoja, activas, de la misma moneda y con algo reservado.
+ */
+export function GoalSelect({ value, onChange, currency, className }) {
+  const { data: goals = [] } = useGetGoalsQuery()
+  const parentIds = new Set(goals.map((g) => g.parent_id).filter(Boolean))
+  const eligible = goals.filter(
+    (g) =>
+      g.status === 'ACTIVE' &&
+      g.currency_code === currency &&
+      !parentIds.has(g.id) &&
+      Number(g.current_amount) > 0,
+  )
+  return (
+    <Select value={value} onValueChange={onChange}>
+      <SelectTrigger className={className}>
+        <SelectValue placeholder="No usar meta" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={NONE}>No usar meta</SelectItem>
+        {eligible.map((g) => (
+          <SelectItem key={g.id} value={g.id}>
+            {g.name} · {Number(g.current_amount).toLocaleString('es-AR')} {g.currency_code}
           </SelectItem>
         ))}
       </SelectContent>

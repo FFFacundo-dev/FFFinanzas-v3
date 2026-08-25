@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
-import { AccountSelect, NONE } from '@/components/common/EntitySelects'
+import { AccountSelect, GoalSelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { usePayInstallmentMutation } from '../installmentsApi'
 
@@ -22,6 +22,7 @@ function PayForm({ installment, onClose }) {
   const [form, setForm] = useState(() => ({
     amount: installment.default_amount != null ? String(installment.default_amount) : '',
     account_id: installment.account_id ?? NONE,
+    goal_id: NONE,
     payment_date: toInputDate(new Date()),
   }))
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }))
@@ -39,6 +40,7 @@ function PayForm({ installment, onClose }) {
         installment_number: nextNumber,
         amount_override: amount,
         account_id: form.account_id === NONE ? null : form.account_id,
+        goal_id: form.goal_id === NONE ? null : form.goal_id,
         payment_date: form.payment_date,
       }).unwrap()
       toast.success(`Cuota ${nextNumber} pagada`)
@@ -73,6 +75,15 @@ function PayForm({ installment, onClose }) {
         <div className="flex flex-col gap-1.5">
           <Label>Medio (opcional)</Label>
           <AccountSelect value={form.account_id} onChange={(v) => set('account_id', v)} optional />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>Pagar desde meta (opcional)</Label>
+          <GoalSelect
+            value={form.goal_id}
+            onChange={(v) => set('goal_id', v)}
+            currency={installment.currency_code}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

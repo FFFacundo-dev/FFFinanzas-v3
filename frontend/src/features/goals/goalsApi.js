@@ -12,6 +12,12 @@ export const goalsApi = apiSlice.injectEndpoints({
       transformResponse: (res) => res.data,
       providesTags: (_r, _e, id) => [{ type: 'Goal', id }],
     }),
+    // Últimas acciones de todas las metas (tabla de actividad).
+    getRecentGoalMovements: builder.query({
+      query: (limit = 20) => ({ url: '/goals/movements', params: { limit } }),
+      transformResponse: (res) => res.data,
+      providesTags: ['Goal'],
+    }),
     createGoal: builder.mutation({
       query: (body) => ({ url: '/goals', method: 'POST', body }),
       invalidatesTags: ['Goal'],
@@ -41,6 +47,7 @@ export const goalsApi = apiSlice.injectEndpoints({
 export const {
   useGetGoalsQuery,
   useGetGoalMovementsQuery,
+  useGetRecentGoalMovementsQuery,
   useCreateGoalMutation,
   useUpdateGoalMutation,
   usePatchGoalStatusMutation,

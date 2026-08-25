@@ -7,6 +7,7 @@ import {
   normalizeMonthStart
 } from '../../utils/money.js'
 import { ensureRowExists, ensureAccountOwner, ensureCategoryOwner } from '../../utils/ensure.js'
+import { releaseFromGoalTx } from '../goals/goals.service.js'
 
 const INST_COLUMNS = sql`id, user_id, account_id, category_id, description, currency_code,
   total_installments, total_amount, default_amount, billing_day, start_date,
@@ -177,6 +178,9 @@ export async function createInstallmentPayment(userId, payload) {
         (${installment.id}, ${userId}, ${installmentNumber}, ${amountOverride}, ${payload.payment_date}, ${txRows[0].id}, ${notes})
       RETURNING id, installment_id, user_id, installment_number, amount_override, payment_date, transaction_id, notes, created_at, updated_at
     `
+    if (payload.goal_id) {
+      await releaseFromGoalTx(tx, userId, payload.goal_id, amount, installment.currency_code)
+    }
     return paymentRows[0]
   })
 }

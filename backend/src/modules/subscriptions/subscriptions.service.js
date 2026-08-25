@@ -2,6 +2,7 @@ import sql from '../../config/db.js'
 import { HttpError } from '../../utils/http-error.js'
 import { normalizeMonthStart } from '../../utils/money.js'
 import { ensureRowExists, ensureAccountOwner, ensureCategoryOwner } from '../../utils/ensure.js'
+import { releaseFromGoalTx } from '../goals/goals.service.js'
 
 const SUB_COLUMNS = sql`id, user_id, category_id, name, description, currency_code,
   default_amount, account_id, billing_day, start_date, status, created_at, updated_at`
@@ -112,6 +113,9 @@ export async function createSubscriptionPayment(userId, payload) {
         (${subscription.id}, ${userId}, ${accountId}, ${amount}, ${payload.payment_date}, ${periodMonth}, ${txRows[0].id}, ${notes})
       RETURNING id, subscription_id, user_id, account_id, amount, payment_date, period_month, transaction_id, notes, created_at, updated_at
     `
+    if (payload.goal_id) {
+      await releaseFromGoalTx(tx, userId, payload.goal_id, amount, subscription.currency_code)
+    }
     return paymentRows[0]
   })
 }

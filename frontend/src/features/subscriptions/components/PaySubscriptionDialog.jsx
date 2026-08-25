@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
-import { AccountSelect, NONE } from '@/components/common/EntitySelects'
+import { AccountSelect, GoalSelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { usePaySubscriptionMutation } from '../subscriptionsApi'
 
@@ -25,6 +25,7 @@ function PayForm({ subscription, onClose }) {
   const [form, setForm] = useState(() => ({
     amount: subscription.default_amount != null ? String(subscription.default_amount) : '',
     account_id: subscription.account_id ?? NONE,
+    goal_id: NONE,
     payment_date: toInputDate(new Date()),
     period_month: currentMonth(),
     notes: '',
@@ -44,6 +45,7 @@ function PayForm({ subscription, onClose }) {
         subscription_id: subscription.id,
         amount,
         account_id: form.account_id === NONE ? null : form.account_id,
+        goal_id: form.goal_id === NONE ? null : form.goal_id,
         payment_date: form.payment_date,
         period_month: `${form.period_month}-01`,
         notes: form.notes.trim() || null,
@@ -91,6 +93,15 @@ function PayForm({ subscription, onClose }) {
         <div className="flex flex-col gap-1.5">
           <Label>Medio (opcional)</Label>
           <AccountSelect value={form.account_id} onChange={(v) => set('account_id', v)} optional />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label>Pagar desde meta (opcional)</Label>
+          <GoalSelect
+            value={form.goal_id}
+            onChange={(v) => set('goal_id', v)}
+            currency={subscription.currency_code}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

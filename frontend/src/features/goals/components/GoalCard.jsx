@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { parseDate } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 // En la card del grupo, Aportar/Retirar abren un menú con las metas hijas;
 // al elegir una se reusa el flujo normal (onPick = onAllocate/onRelease de esa hija).
@@ -70,7 +71,12 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
   const isParent = children.length > 0
 
   return (
-    <Card className="flex flex-col shadow-subtle">
+    <Card
+      className={cn(
+        'flex flex-col shadow-subtle',
+        goal.is_completed && !archived && 'border-income-foreground/30 bg-income/50',
+      )}
+    >
       <CardContent className="flex flex-1 flex-col py-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">

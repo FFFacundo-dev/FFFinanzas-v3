@@ -17,6 +17,7 @@ router.put('/:id', validateBody(updateGoalSchema), asyncHandler(controller.updat
 router.patch('/:id', validateBody(patchGoalSchema), asyncHandler(controller.patchStatus))
 router.delete('/:id', asyncHandler(controller.remove))
 
+router.get('/movements', asyncHandler(controller.listRecentMovements))
 router.get('/:id/movements', asyncHandler(controller.listMovements))
 router.post('/:id/movements', validateBody(goalMovementSchema), asyncHandler(controller.createMovement))
 
