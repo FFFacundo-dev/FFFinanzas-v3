@@ -27,6 +27,7 @@ import { CategoryManagerDialog } from '@/features/categories/components/Category
 import { AccountManagerDialog } from '@/features/accounts/components/AccountManagerDialog'
 import { CreateExchangeDialog } from '@/features/exchanges/components/CreateExchangeDialog'
 import { ExchangesList } from '@/features/exchanges/components/ExchangesList'
+import { GoalActivityTable } from '@/features/goals/components/GoalActivityTable'
 
 export function TransactionsView() {
   const [filter, setFilter] = useState('ALL')
@@ -128,6 +129,7 @@ export function TransactionsView() {
         <TabsList>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
           <TabsTrigger value="cambios">Cambios</TabsTrigger>
+          <TabsTrigger value="metas">Metas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="movimientos">
@@ -162,6 +164,21 @@ export function TransactionsView() {
                 items={exQuery.data}
                 isLoading={exQuery.isLoading}
                 onDelete={setExToDelete}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="metas">
+          <Card className="shadow-subtle">
+            <CardContent className="pt-6">
+              <p className="mb-3 text-sm text-muted-foreground">
+                Plata que sale hacia metas (aporte) o vuelve al disponible (retiro).
+              </p>
+              <GoalActivityTable
+                invert
+                title={null}
+                emptyMessage="Todavía no hay aportes ni retiros a metas."
               />
             </CardContent>
           </Card>

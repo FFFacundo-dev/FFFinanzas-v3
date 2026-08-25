@@ -60,7 +60,7 @@ function daysLeftLabel(deadline) {
   return `Faltan ${diff} días`
 }
 
-export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, onDetails, onReconcile, onArchiveToggle, onDelete }) {
+export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, onDetails, onReconcile, onArchiveToggle, onWithdrawAll, onDelete }) {
   const current = Number(goal.current_amount)
   const hasTarget = goal.target_amount != null
   const target = hasTarget ? Number(goal.target_amount) : null
@@ -114,6 +114,12 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
                   <DropdownMenuItem onClick={() => onReconcile(goal)}>
                     <Scales className="h-4 w-4" />
                     Conciliar
+                  </DropdownMenuItem>
+                )}
+                {!isParent && !archived && current > 0 && (
+                  <DropdownMenuItem onClick={() => onWithdrawAll(goal)}>
+                    <Minus className="h-4 w-4" />
+                    Retirar todo
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => onEdit(goal)}>

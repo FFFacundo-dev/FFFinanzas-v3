@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Minus, Target } from '@phosphor-icons/react'
+import { Plus, Target } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -45,8 +45,7 @@ export function GoalsView() {
   const [detail, setDetail] = useState({ open: false, goal: null })
   const [reconcile, setReconcile] = useState({ open: false, goal: null })
   const [toDelete, setToDelete] = useState(null)
-  const [withdrawAllOpen, setWithdrawAllOpen] = useState(false)
-  const [withdrawing, setWithdrawing] = useState(false)
+  const [toWithdrawAll, setToWithdrawAll] = useState(null)
 
   const childrenOf = (id) => goals.filter((g) => g.parent_id === id)
   // Las hijas no van a la grilla: solo se ven anidadas dentro de su meta padre.
@@ -66,28 +65,18 @@ export function GoalsView() {
     }, {}),
   ).filter(([, total]) => total > 0)
 
-  // Metas hoja (sin hijas) con algo reservado: son las que se pueden retirar.
-  const withdrawable = goals.filter(
-    (g) => g.status === 'ACTIVE' && childrenOf(g.id).length === 0 && Number(g.current_amount) > 0,
-  )
-
-  async function withdrawAll() {
-    setWithdrawing(true)
+  async function confirmWithdrawAll() {
     try {
-      // ponytail: secuencial; son pocas metas y cada RELEASE no depende del disponible.
-      for (const g of withdrawable) {
-        await createMovement({
-          id: g.id,
-          movement_type: 'RELEASE',
-          amount: Number(g.current_amount),
-        }).unwrap()
-      }
-      toast.success('Se retiró todo lo reservado')
+      await createMovement({
+        id: toWithdrawAll.id,
+        movement_type: 'RELEASE',
+        amount: Number(toWithdrawAll.current_amount),
+      }).unwrap()
+      toast.success('Se retiró todo lo reservado de la meta')
     } catch (err) {
-      toast.error(err?.message ?? 'No se pudo retirar todo')
+      toast.error(err?.message ?? 'No se pudo retirar')
     } finally {
-      setWithdrawing(false)
-      setWithdrawAllOpen(false)
+      setToWithdrawAll(null)
     }
   }
 
@@ -119,6 +108,7 @@ export function GoalsView() {
     onDetails: (g) => setDetail({ open: true, goal: g }),
     onReconcile: (g) => setReconcile({ open: true, goal: g }),
     onArchiveToggle: handleArchiveToggle,
+    onWithdrawAll: setToWithdrawAll,
     onDelete: setToDelete,
   }
 
@@ -156,26 +146,15 @@ export function GoalsView() {
       ) : (
         <div className="space-y-8">
           {reservedByCurrency.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Total reservado
-                </span>
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  {reservedByCurrency.map(([currency, total]) => (
-                    <MoneyAmount key={currency} value={total} currency={currency} size="lg" />
-                  ))}
-                </div>
+            <div className="flex flex-col gap-1 rounded-lg border border-border bg-secondary/40 p-4">
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                Total reservado
+              </span>
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                {reservedByCurrency.map(([currency, total]) => (
+                  <MoneyAmount key={currency} value={total} currency={currency} size="lg" />
+                ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setWithdrawAllOpen(true)}
-                disabled={withdrawable.length === 0}
-              >
-                <Minus className="h-4 w-4" />
-                Retirar todo
-              </Button>
             </div>
           )}
           {active.length > 0 && (
@@ -226,14 +205,12 @@ export function GoalsView() {
         onConfirm={confirmDelete}
       />
       <ConfirmDialog
-        open={withdrawAllOpen}
-        onOpenChange={(o) => !withdrawing && !o && setWithdrawAllOpen(false)}
+        open={Boolean(toWithdrawAll)}
+        onOpenChange={(o) => !o && setToWithdrawAll(null)}
         title="Retirar todo"
-        description={`Se liberará lo reservado de ${withdrawable.length} ${
-          withdrawable.length === 1 ? 'meta' : 'metas'
-        } al disponible. Las metas quedan en cero.`}
-        confirmLabel={withdrawing ? 'Retirando…' : 'Retirar todo'}
-        onConfirm={withdrawAll}
+        description={`Se liberará todo lo reservado de "${toWithdrawAll?.name}" al disponible. La meta queda en cero.`}
+        confirmLabel="Retirar todo"
+        onConfirm={confirmWithdrawAll}
       />
     </>
   )

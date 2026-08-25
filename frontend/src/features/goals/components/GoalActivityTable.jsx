@@ -12,15 +12,25 @@ import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { formatDate } from '@/lib/format'
 import { useGetRecentGoalMovementsQuery } from '../goalsApi'
 
-export function GoalActivityTable() {
+/**
+ * Tabla de aportes/retiros de metas.
+ *  - Metas (invert=false): aporte = ingreso (+verde), retiro = gasto (−rojo).
+ *  - Movimientos (invert=true): se ve al revés respecto del disponible: aportar
+ *    saca plata del disponible (gasto), retirar la devuelve (ingreso).
+ */
+export function GoalActivityTable({ invert = false, title = 'Últimas acciones', emptyMessage = null }) {
   const { data: movements = [], isLoading } = useGetRecentGoalMovementsQuery()
 
   if (isLoading) return <Skeleton className="h-40 w-full rounded-lg" />
-  if (!movements.length) return null
+  if (!movements.length) {
+    return emptyMessage ? (
+      <p className="py-8 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+    ) : null
+  }
 
   return (
     <section>
-      <h2 className="mb-3 font-display text-lg text-foreground">Últimas acciones</h2>
+      {title && <h2 className="mb-3 font-display text-lg text-foreground">{title}</h2>}
       <div className="rounded-lg border border-border">
         <Table>
           <TableHeader>
@@ -34,6 +44,8 @@ export function GoalActivityTable() {
           <TableBody>
             {movements.map((m) => {
               const isAllocate = m.movement_type === 'ALLOCATE'
+              // "positive" = suma al lado que estamos mirando (meta o disponible).
+              const positive = invert ? !isAllocate : isAllocate
               return (
                 <TableRow key={m.id}>
                   <TableCell className="whitespace-nowrap text-muted-foreground">
@@ -43,10 +55,10 @@ export function GoalActivityTable() {
                   <TableCell>
                     <span
                       className={`inline-flex items-center gap-1 text-sm ${
-                        isAllocate ? 'text-income-foreground' : 'text-expense-foreground'
+                        positive ? 'text-income-foreground' : 'text-expense-foreground'
                       }`}
                     >
-                      {isAllocate ? <Plus className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
+                      {positive ? <Plus className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
                       {isAllocate ? 'Aporte' : 'Retiro'}
                     </span>
                   </TableCell>
@@ -55,7 +67,7 @@ export function GoalActivityTable() {
                       value={Number(m.amount)}
                       currency={m.currency_code}
                       size="sm"
-                      tone={isAllocate ? 'income' : 'expense'}
+                      tone={positive ? 'income' : 'expense'}
                       signed
                     />
                   </TableCell>
