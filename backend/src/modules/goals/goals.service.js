@@ -123,6 +123,48 @@ export async function listGoalMovements(userId, goalId) {
   `
 }
 
+// Libera `amount` de una meta hoja dentro de una transacción de pago (pagar con dinero reservado).
+// Valida pertenencia, moneda, que no sea grupo (padre) y que tenga suficiente reservado.
+// ponytail: al borrar el pago la plata vuelve al disponible, NO se re-reserva en la meta
+// (goal_movements no linkea al pago); sumar esa columna si algún día molesta.
+export async function releaseFromGoalTx(tx, userId, goalId, amount, currencyCode) {
+  const rows = await tx`
+    SELECT current_amount, currency_code, status FROM public.v_goal_progress
+    WHERE goal_id = ${goalId} AND user_id = ${userId}
+  `
+  if (rows.length === 0) throw new HttpError(404, 'Goal not found')
+  const goal = rows[0]
+  if (goal.status === 'ARCHIVED') throw new HttpError(422, 'La meta está archivada')
+  if (goal.currency_code !== currencyCode) {
+    throw new HttpError(422, 'La meta debe ser de la misma moneda que el pago')
+  }
+  const kids = await tx`SELECT 1 FROM public.goals WHERE parent_id = ${goalId} LIMIT 1`
+  if (kids.length > 0) {
+    throw new HttpError(422, 'Elegí una meta hoja: los grupos no reservan dinero directamente')
+  }
+  if (Number(amount) > Number(goal.current_amount) + EPS) {
+    throw new HttpError(422, 'La meta no tiene suficiente reservado para cubrir el pago')
+  }
+  await tx`
+    INSERT INTO public.goal_movements (goal_id, user_id, movement_type, amount)
+    VALUES (${goalId}, ${userId}, 'RELEASE', ${amount})
+  `
+}
+
+// Últimos movimientos de todas las metas (para la tabla de actividad), con el nombre de la meta.
+export function listRecentMovements(userId, limit = 20) {
+  const n = Math.min(Math.max(Number(limit) || 20, 1), 100)
+  return sql`
+    SELECT m.id, m.goal_id, g.name AS goal_name, g.currency_code,
+           m.movement_type, m.amount, m.date, m.created_at
+    FROM public.goal_movements m
+    JOIN public.goals g ON g.id = m.goal_id
+    WHERE m.user_id = ${userId}
+    ORDER BY m.date DESC, m.created_at DESC
+    LIMIT ${n}
+  `
+}
+
 export async function createGoalMovement(userId, goalId, payload) {
   const goal = await getGoal(userId, goalId)
   if (goal.status === 'ARCHIVED') {

@@ -9,6 +9,16 @@ export const budgetRenameSchema = z.object({
   name: z.string().trim().min(1, 'El nombre es obligatorio').max(60)
 })
 
+// Sueldo base general del usuario (ARS).
+export const generalBaseIncomeSchema = z.object({
+  amount: z.coerce.number().min(0)
+})
+
+// Override por presupuesto: null limpia el override (hereda el general).
+export const budgetBaseIncomeSchema = z.object({
+  amount: z.coerce.number().min(0).nullable()
+})
+
 export const budgetItemSchema = z.object({
   budget_id: z.string().uuid(),
   label: z.string().trim().min(1, 'El label es obligatorio'),

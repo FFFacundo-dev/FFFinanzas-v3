@@ -6,11 +6,18 @@ import { ensureRowExists, ensureSubscriptionOwner, ensureInstallmentOwner } from
 // ── Presupuestos (varios por mes, con nombre) ────────────
 async function getBudgetOr404(userId, budgetId) {
   const rows = await sql`
-    SELECT id, period_month, is_default FROM public.budgets
+    SELECT id, period_month, is_default, base_income FROM public.budgets
     WHERE id = ${budgetId} AND user_id = ${userId}
   `
   if (!rows[0]) throw new HttpError(404, 'Budget not found')
   return rows[0]
+}
+
+// Sueldo base efectivo del presupuesto: override propio o, si es NULL, el general del usuario.
+async function effectiveBaseIncome(userId, budget) {
+  if (budget.base_income != null) return { amount: Number(budget.base_income), scope: 'BUDGET' }
+  const [u] = await sql`SELECT base_income FROM public.users WHERE id = ${userId}`
+  return { amount: Number(u?.base_income ?? 0), scope: 'GENERAL' }
 }
 
 export async function listBudgets(userId) {
@@ -73,13 +80,33 @@ export async function deleteBudget(userId, id) {
   if (rows.length === 0) throw new HttpError(404, 'Budget not found')
 }
 
+// ── Sueldo base (ingreso base) ───────────────────────────
+export async function setGeneralBaseIncome(userId, amount) {
+  const rows = await sql`
+    UPDATE public.users SET base_income = ${amount} WHERE id = ${userId}
+    RETURNING base_income
+  `
+  return { base_income: Number(rows[0].base_income) }
+}
+
+// amount === null limpia el override (el presupuesto vuelve a heredar el general).
+export async function setBudgetBaseIncome(userId, id, amount) {
+  const rows = await sql`
+    UPDATE public.budgets SET base_income = ${amount}
+    WHERE id = ${id} AND user_id = ${userId}
+    RETURNING id, base_income
+  `
+  if (!rows[0]) throw new HttpError(404, 'Budget not found')
+  return rows[0]
+}
+
 // ── Items (manuales + generados por el sistema) ──────────
 export async function listBudgetItems(userId, budgetId) {
   const budget = await getBudgetOr404(userId, budgetId)
   const periodMonth = budget.period_month
   // Los fijos del sistema se derivan por el MES del presupuesto y aparecen en
   // todos los presupuestos de ese mes; los manuales son propios de cada budget_id.
-  return sql`
+  const items = await sql`
     WITH params AS (
       SELECT
         ${periodMonth}::date AS month_start,
@@ -135,6 +162,19 @@ export async function listBudgetItems(userId, budgetId) {
     FROM (SELECT * FROM manual_items UNION ALL SELECT * FROM system_items) items
     ORDER BY sort_bucket ASC, paid_date DESC NULLS LAST, amount DESC, created_at DESC NULLS LAST, label ASC, currency_code ASC
   `
+
+  // Sueldo base: ítem INCOME automático (ARS), editable en monto pero no borrable.
+  // Siempre presente y primero, aunque sea 0 ("todo presupuesto debe tener el sueldo base").
+  const base = await effectiveBaseIncome(userId, budget)
+  const baseItem = {
+    id: 'system-base-income', user_id: userId, period_month: periodMonth,
+    label: 'Sueldo base', amount: base.amount, flow_type: 'INCOME', currency_code: 'ARS',
+    item_type: 'ONE_TIME', subscription_id: null, installment_id: null,
+    created_at: null, updated_at: null, source_kind: 'BASE_INCOME',
+    editable: true, deletable: false, summary_count: null, details: null,
+    paid: false, paid_date: null, payment_kind: null, base_scope: base.scope,
+  }
+  return [baseItem, ...items]
 }
 
 async function validateItemRefs(userId, subscriptionId, installmentId) {
@@ -184,7 +224,7 @@ export async function getBudgetSummary(userId, budgetId) {
   const budget = await getBudgetOr404(userId, budgetId)
   const periodMonth = budget.period_month
   // La deuda fija se deriva por el MES del presupuesto y cuenta en todos los del mes.
-  return sql`
+  const rows = [...(await sql`
     WITH params AS (
       SELECT ${periodMonth}::date AS month_start,
         (${periodMonth}::date + INTERVAL '1 month' - INTERVAL '1 day')::date AS month_end,
@@ -233,7 +273,24 @@ export async function getBudgetSummary(userId, budgetId) {
     LEFT JOIN installment_debt id ON id.currency_code = ac.currency_code
     LEFT JOIN hypothetical_items hi ON hi.currency_code = ac.currency_code
     ORDER BY ac.currency_code ASC
-  `
+  `)]
+
+  // El sueldo base (ARS) cuenta como ingreso hipotético.
+  const base = await effectiveBaseIncome(userId, budget)
+  if (base.amount > 0) {
+    const ars = rows.find((r) => r.currency_code === 'ARS')
+    if (ars) {
+      ars.hypothetical_income_total = Number(ars.hypothetical_income_total) + base.amount
+      ars.hypothetical_total = Number(ars.hypothetical_total) + base.amount
+    } else {
+      rows.push({
+        currency_code: 'ARS', subscription_debt: 0, installment_debt: 0, fixed_debt_total: 0,
+        hypothetical_expense_total: 0, hypothetical_income_total: base.amount, hypothetical_total: base.amount,
+      })
+      rows.sort((a, b) => a.currency_code.localeCompare(b.currency_code))
+    }
+  }
+  return rows
 }
 
 // ── Settings (excedente por moneda) ──────────────────────

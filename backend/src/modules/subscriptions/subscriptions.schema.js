@@ -15,6 +15,8 @@ export const subscriptionBodySchema = z.object({
 export const subscriptionPaymentBodySchema = z.object({
   subscription_id: z.string().uuid(),
   account_id: z.string().uuid().nullable().optional(),
+  // Si viene, el pago se cubre liberando lo reservado en esa meta (misma moneda).
+  goal_id: z.string().uuid().nullable().optional(),
   amount: z.coerce.number().positive(),
   payment_date: z.string().date(),
   period_month: z.string().trim().min(1),

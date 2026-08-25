@@ -1,7 +1,7 @@
 import { apiSlice } from '@/app/apiSlice'
 
-// Pagar/adelantar una cuota crea un EXPENSE: invalida balances y reportes.
-const PAYMENT_TAGS = ['Installment', 'Balance', 'Report', { type: 'Transaction', id: 'LIST' }]
+// Pagar/adelantar una cuota crea un EXPENSE (y puede liberar una meta): invalida balances, reportes y metas.
+const PAYMENT_TAGS = ['Installment', 'Balance', 'Report', 'Goal', { type: 'Transaction', id: 'LIST' }]
 
 export const installmentsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

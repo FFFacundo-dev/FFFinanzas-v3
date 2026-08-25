@@ -19,13 +19,14 @@ export const subscriptionsApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/subscriptions/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Subscription', 'Budget'],
     }),
-    // Un pago de suscripción crea un EXPENSE: invalida balances y reportes.
+    // Un pago de suscripción crea un EXPENSE (y puede liberar una meta): invalida balances, reportes y metas.
     paySubscription: builder.mutation({
       query: (body) => ({ url: '/subscription-payments', method: 'POST', body }),
       invalidatesTags: [
         'Subscription',
         'Balance',
         'Report',
+        'Goal',
         { type: 'Transaction', id: 'LIST' },
       ],
     }),

@@ -24,6 +24,10 @@ export async function remove(req, res) {
   res.json({ ok: true })
 }
 
+export async function listRecentMovements(req, res) {
+  res.json({ ok: true, data: await service.listRecentMovements(req.auth.userId, req.query.limit) })
+}
+
 export async function listMovements(req, res) {
   res.json({ ok: true, data: await service.listGoalMovements(req.auth.userId, req.params.id) })
 }

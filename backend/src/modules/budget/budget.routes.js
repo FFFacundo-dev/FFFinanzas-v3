@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { asyncHandler } from '../../utils/async-handler.js'
 import { validateBody } from '../../middleware/validate.js'
-import { budgetItemSchema, budgetSettingsSchema, budgetSchema, budgetRenameSchema } from './budget.schema.js'
+import { budgetItemSchema, budgetSettingsSchema, budgetSchema, budgetRenameSchema, generalBaseIncomeSchema, budgetBaseIncomeSchema } from './budget.schema.js'
 import * as service from './budget.service.js'
 
 const router = Router()
@@ -18,6 +18,16 @@ router.post('/budgets', validateBody(budgetSchema), asyncHandler(async (req, res
 
 router.post('/budgets/:id/duplicate', asyncHandler(async (req, res) => {
   res.status(201).json({ ok: true, data: await service.duplicateBudget(req.auth.userId, req.params.id) })
+}))
+
+// Sueldo base general (todos los presupuestos que no tengan override).
+router.put('/base-income', validateBody(generalBaseIncomeSchema), asyncHandler(async (req, res) => {
+  res.json({ ok: true, data: await service.setGeneralBaseIncome(req.auth.userId, req.validated.body.amount) })
+}))
+
+// Sueldo base solo para este presupuesto (override; amount null lo limpia).
+router.put('/budgets/:id/base-income', validateBody(budgetBaseIncomeSchema), asyncHandler(async (req, res) => {
+  res.json({ ok: true, data: await service.setBudgetBaseIncome(req.auth.userId, req.params.id, req.validated.body.amount) })
 }))
 
 router.put('/budgets/:id', validateBody(budgetRenameSchema), asyncHandler(async (req, res) => {
