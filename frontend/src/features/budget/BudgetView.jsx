@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, ArrowsClockwise } from '@phosphor-icons/react'
+import { Plus, ArrowsClockwise, Wallet } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useGetBudgetsQuery, useCreateBudgetMutation } from './budgetApi'
+import { useGetBudgetsQuery, useCreateBudgetMutation, useGetGeneralBaseIncomeQuery } from './budgetApi'
 import { BudgetCard } from './components/BudgetCard'
 import { BudgetDetailDialog } from './components/BudgetDetailDialog'
 import { BudgetNameDialog } from './components/BudgetNameDialog'
+import { BaseIncomeDialog } from './components/BaseIncomeDialog'
 
 export function BudgetView() {
   // Todos los presupuestos del usuario (de cualquier mes).
@@ -19,6 +20,8 @@ export function BudgetView() {
   const [detailId, setDetailId] = useState(null)
   const [newOpen, setNewOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [baseOpen, setBaseOpen] = useState(false)
+  const generalBase = useGetGeneralBaseIncomeQuery()
   const detailBudget = budgetList.find((b) => b.id === detailId) ?? null
 
   const term = search.trim().toLowerCase()
@@ -47,8 +50,8 @@ export function BudgetView() {
         }
       />
 
-      {/* Buscador por nombre */}
-      <div className="mb-6">
+      {/* Buscador por nombre + sueldo base general */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <Input
           type="search"
           value={search}
@@ -56,6 +59,10 @@ export function BudgetView() {
           placeholder="Buscar presupuesto por nombre…"
           className="max-w-sm"
         />
+        <Button variant="outline" onClick={() => setBaseOpen(true)}>
+          <Wallet className="h-4 w-4" />
+          Sueldo base
+        </Button>
       </div>
 
       {/* Cards de todos los presupuestos */}
@@ -90,6 +97,12 @@ export function BudgetView() {
         open={!!detailBudget}
         onOpenChange={(o) => !o && setDetailId(null)}
         budget={detailBudget}
+      />
+
+      <BaseIncomeDialog
+        open={baseOpen}
+        onOpenChange={setBaseOpen}
+        initialAmount={generalBase.data?.base_income ?? 0}
       />
 
       <BudgetNameDialog

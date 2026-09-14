@@ -19,6 +19,13 @@ export const budgetBaseIncomeSchema = z.object({
   amount: z.coerce.number().min(0).nullable()
 })
 
+// Ajustes de un gasto fijo dentro de un presupuesto puntual.
+// amount null = usar el monto real de la suscripción/cuota.
+export const budgetFixedOverrideSchema = z.object({
+  included: z.boolean(),
+  amount: z.coerce.number().positive().nullable()
+})
+
 export const budgetItemSchema = z.object({
   budget_id: z.string().uuid(),
   label: z.string().trim().min(1, 'El label es obligatorio'),
