@@ -195,11 +195,17 @@ export async function listBudgetItems(userId, budgetId) {
       summary_count, details, paid, paid_date, payment_kind, source_id, included,
       base_amount, override_amount
     FROM (SELECT * FROM manual_items UNION ALL SELECT * FROM system_items) items
-    ORDER BY sort_bucket ASC, paid_date DESC NULLS LAST, amount DESC, created_at DESC NULLS LAST, label ASC, currency_code ASC
+    -- Los fijos ordenan por su monto REAL: ni el check ni un monto ajustado los mueven de lugar.
+    -- Los manuales (bucket 0) empatan en esa clave y caen a created_at: orden de llegada.
+    ORDER BY sort_bucket ASC,
+      paid_date DESC NULLS LAST,
+      CASE WHEN sort_bucket = 0 THEN 0 ELSE base_amount END DESC,
+      created_at ASC NULLS LAST,
+      label ASC, currency_code ASC
   `
 
   // Sueldo base: ítem INCOME automático (ARS), editable en monto pero no borrable.
-  // Siempre presente y primero, aunque sea 0 ("todo presupuesto debe tener el sueldo base").
+  // Siempre presente, aunque sea 0 ("todo presupuesto debe tener el sueldo base").
   const base = await effectiveBaseIncome(userId, budget)
   const baseItem = {
     id: 'system-base-income', user_id: userId, period_month: periodMonth,
@@ -210,7 +216,12 @@ export async function listBudgetItems(userId, budgetId) {
     paid: false, paid_date: null, payment_kind: null, included: true,
     base_amount: base.amount, override_amount: null, base_scope: base.scope,
   }
-  return [baseItem, ...items]
+  // Orden final: manuales por orden de llegada, sueldo base, y los gastos fijos al fondo.
+  return [
+    ...items.filter((i) => i.source_kind === 'MANUAL'),
+    baseItem,
+    ...items.filter((i) => i.source_kind === 'SYSTEM'),
+  ]
 }
 
 async function validateItemRefs(userId, subscriptionId, installmentId) {

@@ -225,24 +225,34 @@ function BudgetDetail({ budget, onClose }) {
                 const isSystem = item.source_kind === 'SYSTEM'
                 const excluded = isSystem && !item.included
                 return (
-                  <li key={item.id} className={`flex items-center gap-3 py-2.5 ${excluded ? 'opacity-50' : ''}`}>
+                  <li
+                    key={item.id}
+                    className="group flex items-center gap-3 rounded-sm px-2 py-2.5 transition-colors hover:bg-muted/50"
+                  >
                     <div className="w-4 shrink-0">
                       {isSystem && (
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-primary"
+                          className="h-4 w-4 cursor-pointer accent-primary"
                           checked={!!item.included}
                           onChange={(e) => handleToggleFixed(item, e.target.checked)}
                           aria-label={`Incluir ${item.label} en este presupuesto`}
                         />
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div
+                      className={`min-w-0 flex-1 transition-opacity ${excluded ? 'opacity-60 group-hover:opacity-100' : ''}`}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="truncate text-sm text-foreground">{item.label}</span>
                         {isSystem && (
                           <Badge variant="secondary" className="rounded-sm px-1.5 py-0 text-[11px] font-normal">
                             Fijo
+                          </Badge>
+                        )}
+                        {excluded && (
+                          <Badge variant="outline" className="rounded-sm border-dashed px-1.5 py-0 text-[11px] font-normal">
+                            No cuenta
                           </Badge>
                         )}
                         {item.override_amount != null && (
@@ -264,6 +274,7 @@ function BudgetDetail({ budget, onClose }) {
                       tone={income ? 'income' : 'expense'}
                       signed
                       size="sm"
+                      className={excluded ? 'line-through opacity-60 transition-opacity group-hover:opacity-100' : undefined}
                     />
 
                     <div className="w-8 shrink-0">
