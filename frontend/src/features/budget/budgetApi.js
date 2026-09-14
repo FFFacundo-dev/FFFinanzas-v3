@@ -54,6 +54,19 @@ export const budgetApi = apiSlice.injectEndpoints({
       query: (body) => ({ url: '/budget/settings', method: 'POST', body }),
       invalidatesTags: ['Budget'],
     }),
+    getGeneralBaseIncome: builder.query({
+      query: () => ({ url: '/budget/base-income' }),
+      transformResponse: (res) => res.data,
+      providesTags: ['Budget'],
+    }),
+    setBudgetFixedOverride: builder.mutation({
+      query: ({ id, sourceId, included, amount }) => ({
+        url: `/budget/budgets/${id}/fixed/${sourceId}`,
+        method: 'PUT',
+        body: { included, amount },
+      }),
+      invalidatesTags: ['Budget'],
+    }),
     setGeneralBaseIncome: builder.mutation({
       query: (amount) => ({ url: '/budget/base-income', method: 'PUT', body: { amount } }),
       invalidatesTags: ['Budget'],
@@ -78,6 +91,8 @@ export const {
   useUpdateBudgetItemMutation,
   useDeleteBudgetItemMutation,
   useUpsertBudgetSettingsMutation,
+  useGetGeneralBaseIncomeQuery,
+  useSetBudgetFixedOverrideMutation,
   useSetGeneralBaseIncomeMutation,
   useSetBudgetBaseIncomeMutation,
 } = budgetApi

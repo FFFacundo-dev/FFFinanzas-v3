@@ -57,6 +57,11 @@ export async function duplicateBudget(userId, id) {
       SELECT user_id, ${copy.id}, period_month, label, amount, flow_type, currency_code, item_type, subscription_id, installment_id
       FROM public.budget_items WHERE user_id = ${userId} AND budget_id = ${id}
     `
+    // La copia arranca con los mismos ajustes de gastos fijos.
+    await sql`
+      INSERT INTO public.budget_fixed_overrides (budget_id, source_id, included, amount)
+      SELECT ${copy.id}, source_id, included, amount FROM public.budget_fixed_overrides WHERE budget_id = ${id}
+    `
     return copy
   })
 }
@@ -81,6 +86,11 @@ export async function deleteBudget(userId, id) {
 }
 
 // ── Sueldo base (ingreso base) ───────────────────────────
+export async function getGeneralBaseIncome(userId) {
+  const [u] = await sql`SELECT base_income FROM public.users WHERE id = ${userId}`
+  return { base_income: Number(u?.base_income ?? 0) }
+}
+
 export async function setGeneralBaseIncome(userId, amount) {
   const rows = await sql`
     UPDATE public.users SET base_income = ${amount} WHERE id = ${userId}
@@ -98,6 +108,25 @@ export async function setBudgetBaseIncome(userId, id, amount) {
   `
   if (!rows[0]) throw new HttpError(404, 'Budget not found')
   return rows[0]
+}
+
+// ── Ajustes de gastos fijos por presupuesto ──────────────
+// Sin fila = incluido y con su monto real. Nunca toca subscriptions/installments:
+// el override vive solo en este presupuesto.
+export async function setBudgetFixedOverride(userId, budgetId, sourceId, { included, amount }) {
+  await getBudgetOr404(userId, budgetId)
+  if (included && amount == null) {
+    // Vuelve al estado por defecto: no guardamos una fila que no dice nada.
+    await sql`DELETE FROM public.budget_fixed_overrides WHERE budget_id = ${budgetId} AND source_id = ${sourceId}`
+  } else {
+    await sql`
+      INSERT INTO public.budget_fixed_overrides (budget_id, source_id, included, amount)
+      VALUES (${budgetId}, ${sourceId}, ${included}, ${amount})
+      ON CONFLICT (budget_id, source_id)
+      DO UPDATE SET included = EXCLUDED.included, amount = EXCLUDED.amount
+    `
+  }
+  return { budget_id: budgetId, source_id: sourceId, included, amount }
 }
 
 // ── Items (manuales + generados por el sistema) ──────────
@@ -119,33 +148,38 @@ export async function listBudgetItems(userId, budgetId) {
         bi.currency_code, bi.item_type, bi.subscription_id, bi.installment_id, bi.created_at, bi.updated_at,
         'MANUAL'::text AS source_kind, true AS editable, true AS deletable, NULL::integer AS summary_count,
         NULL::jsonb AS details, false AS paid, NULL::date AS paid_date, NULL::text AS payment_kind,
-        bi.id::text AS source_id, 0 AS sort_bucket
+        bi.id::text AS source_id, true AS included,
+        bi.amount AS base_amount, NULL::numeric AS override_amount, 0 AS sort_bucket
       FROM public.budget_items bi
       WHERE bi.user_id = ${userId} AND bi.budget_id = ${budget.id}
     ),
     pending_subscription_items AS (
       SELECT ('system-subscription-' || s.id::text)::text AS id, ${userId}::bigint AS user_id, p.month_start AS period_month,
-        s.name AS label, s.default_amount AS amount, 'EXPENSE'::varchar(10) AS flow_type, s.currency_code,
+        s.name AS label, COALESCE(o.amount, s.default_amount) AS amount, 'EXPENSE'::varchar(10) AS flow_type, s.currency_code,
         'SUBSCRIPTION'::varchar(15) AS item_type, s.id AS subscription_id, NULL::uuid AS installment_id,
         NULL::timestamptz AS created_at, NULL::timestamptz AS updated_at, 'SYSTEM'::text AS source_kind,
         false AS editable, false AS deletable, 1::integer AS summary_count, '[]'::jsonb AS details,
         EXISTS(SELECT 1 FROM public.subscription_payments sp WHERE sp.subscription_id = s.id AND sp.period_month = p.month_start) AS paid,
         (SELECT sp.payment_date FROM public.subscription_payments sp WHERE sp.subscription_id = s.id AND sp.period_month = p.month_start LIMIT 1) AS paid_date,
-        'SUBSCRIPTION'::text AS payment_kind, s.id::text AS source_id, 1 AS sort_bucket
+        'SUBSCRIPTION'::text AS payment_kind, s.id::text AS source_id, COALESCE(o.included, true) AS included,
+        s.default_amount AS base_amount, o.amount AS override_amount, 1 AS sort_bucket
       FROM public.subscriptions s CROSS JOIN params p
+        LEFT JOIN public.budget_fixed_overrides o ON o.budget_id = ${budget.id} AND o.source_id = s.id
       WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
     ),
     pending_installment_items AS (
       SELECT ('system-installment-' || i.id::text)::text AS id, ${userId}::bigint AS user_id, p.month_start AS period_month,
-        i.description AS label, i.default_amount AS amount, 'EXPENSE'::varchar(10) AS flow_type, i.currency_code,
+        i.description AS label, COALESCE(o.amount, i.default_amount) AS amount, 'EXPENSE'::varchar(10) AS flow_type, i.currency_code,
         'INSTALLMENT'::varchar(15) AS item_type, NULL::uuid AS subscription_id, i.id AS installment_id,
         NULL::timestamptz AS created_at, NULL::timestamptz AS updated_at, 'SYSTEM'::text AS source_kind,
         false AS editable, false AS deletable, 1::integer AS summary_count, '[]'::jsonb AS details,
         EXISTS(SELECT 1 FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date BETWEEN p.month_start AND p.month_end) AS paid,
         (SELECT ip.payment_date FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date BETWEEN p.month_start AND p.month_end LIMIT 1) AS paid_date,
-        'INSTALLMENT'::text AS payment_kind, i.id::text AS source_id, 2 AS sort_bucket
+        'INSTALLMENT'::text AS payment_kind, i.id::text AS source_id, COALESCE(o.included, true) AS included,
+        i.default_amount AS base_amount, o.amount AS override_amount, 2 AS sort_bucket
       FROM public.installments i CROSS JOIN params p
+        LEFT JOIN public.budget_fixed_overrides o ON o.budget_id = ${budget.id} AND o.source_id = i.id
       WHERE i.user_id = ${userId} AND i.status = 'ACTIVE' AND i.start_date <= p.month_end
         AND (i.total_installments - i.paid_installments_initial
           - COALESCE((SELECT COUNT(*)::int FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date <= p.prev_month_end), 0)
@@ -158,13 +192,20 @@ export async function listBudgetItems(userId, budgetId) {
     )
     SELECT id, user_id, period_month, label, amount, flow_type, currency_code, item_type,
       subscription_id, installment_id, created_at, updated_at, source_kind, editable, deletable,
-      summary_count, details, paid, paid_date, payment_kind, source_id
+      summary_count, details, paid, paid_date, payment_kind, source_id, included,
+      base_amount, override_amount
     FROM (SELECT * FROM manual_items UNION ALL SELECT * FROM system_items) items
-    ORDER BY sort_bucket ASC, paid_date DESC NULLS LAST, amount DESC, created_at DESC NULLS LAST, label ASC, currency_code ASC
+    -- Los fijos ordenan por su monto REAL: ni el check ni un monto ajustado los mueven de lugar.
+    -- Los manuales (bucket 0) empatan en esa clave y caen a created_at: orden de llegada.
+    ORDER BY sort_bucket ASC,
+      paid_date DESC NULLS LAST,
+      CASE WHEN sort_bucket = 0 THEN 0 ELSE base_amount END DESC,
+      created_at ASC NULLS LAST,
+      label ASC, currency_code ASC
   `
 
   // Sueldo base: ítem INCOME automático (ARS), editable en monto pero no borrable.
-  // Siempre presente y primero, aunque sea 0 ("todo presupuesto debe tener el sueldo base").
+  // Siempre presente, aunque sea 0 ("todo presupuesto debe tener el sueldo base").
   const base = await effectiveBaseIncome(userId, budget)
   const baseItem = {
     id: 'system-base-income', user_id: userId, period_month: periodMonth,
@@ -172,9 +213,15 @@ export async function listBudgetItems(userId, budgetId) {
     item_type: 'ONE_TIME', subscription_id: null, installment_id: null,
     created_at: null, updated_at: null, source_kind: 'BASE_INCOME',
     editable: true, deletable: false, summary_count: null, details: null,
-    paid: false, paid_date: null, payment_kind: null, base_scope: base.scope,
+    paid: false, paid_date: null, payment_kind: null, included: true,
+    base_amount: base.amount, override_amount: null, base_scope: base.scope,
   }
-  return [baseItem, ...items]
+  // Orden final: manuales por orden de llegada, sueldo base, y los gastos fijos al fondo.
+  return [
+    ...items.filter((i) => i.source_kind === 'MANUAL'),
+    baseItem,
+    ...items.filter((i) => i.source_kind === 'SYSTEM'),
+  ]
 }
 
 async function validateItemRefs(userId, subscriptionId, installmentId) {
@@ -232,10 +279,12 @@ export async function getBudgetSummary(userId, budgetId) {
         (${periodMonth}::date - INTERVAL '1 day')::date AS prev_month_end
     ),
     subscription_debt AS (
-      SELECT s.currency_code, SUM(s.default_amount) AS total_subscription_debt
+      SELECT s.currency_code, SUM(COALESCE(o.amount, s.default_amount)) AS total_subscription_debt
       FROM public.subscriptions s CROSS JOIN params p
+        LEFT JOIN public.budget_fixed_overrides o ON o.budget_id = ${budget.id} AND o.source_id = s.id
       WHERE s.user_id = ${userId} AND s.status = 'ACTIVE' AND s.default_amount IS NOT NULL
         AND (s.start_date IS NULL OR DATE_TRUNC('month', s.start_date) <= p.month_start)
+        AND COALESCE(o.included, true)
       GROUP BY s.currency_code
     ),
     installment_debt AS (
@@ -243,9 +292,11 @@ export async function getBudgetSummary(userId, budgetId) {
         WHEN (i.total_installments - i.paid_installments_initial
           - COALESCE((SELECT COUNT(*)::int FROM public.installment_payments ip WHERE ip.installment_id = i.id AND ip.payment_date <= p.prev_month_end), 0)
           - COALESCE((SELECT SUM(iap.installments_count)::int FROM public.installment_advance_payments iap WHERE iap.installment_id = i.id AND iap.applies_from_month <= p.prev_month_start), 0)
-        ) > 0 THEN i.default_amount ELSE 0 END) AS total_installment_debt
+        ) > 0 THEN COALESCE(o.amount, i.default_amount) ELSE 0 END) AS total_installment_debt
       FROM public.installments i CROSS JOIN params p
+        LEFT JOIN public.budget_fixed_overrides o ON o.budget_id = ${budget.id} AND o.source_id = i.id
       WHERE i.user_id = ${userId} AND i.status = 'ACTIVE'
+        AND COALESCE(o.included, true)
       GROUP BY i.currency_code
     ),
     hypothetical_items AS (

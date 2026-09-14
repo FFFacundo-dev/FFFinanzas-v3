@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { asyncHandler } from '../../utils/async-handler.js'
 import { validateBody } from '../../middleware/validate.js'
-import { budgetItemSchema, budgetSettingsSchema, budgetSchema, budgetRenameSchema, generalBaseIncomeSchema, budgetBaseIncomeSchema } from './budget.schema.js'
+import { budgetItemSchema, budgetSettingsSchema, budgetSchema, budgetRenameSchema, generalBaseIncomeSchema, budgetBaseIncomeSchema, budgetFixedOverrideSchema } from './budget.schema.js'
 import * as service from './budget.service.js'
 
 const router = Router()
@@ -20,6 +20,10 @@ router.post('/budgets/:id/duplicate', asyncHandler(async (req, res) => {
   res.status(201).json({ ok: true, data: await service.duplicateBudget(req.auth.userId, req.params.id) })
 }))
 
+router.get('/base-income', asyncHandler(async (req, res) => {
+  res.json({ ok: true, data: await service.getGeneralBaseIncome(req.auth.userId) })
+}))
+
 // Sueldo base general (todos los presupuestos que no tengan override).
 router.put('/base-income', validateBody(generalBaseIncomeSchema), asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await service.setGeneralBaseIncome(req.auth.userId, req.validated.body.amount) })
@@ -28,6 +32,13 @@ router.put('/base-income', validateBody(generalBaseIncomeSchema), asyncHandler(a
 // Sueldo base solo para este presupuesto (override; amount null lo limpia).
 router.put('/budgets/:id/base-income', validateBody(budgetBaseIncomeSchema), asyncHandler(async (req, res) => {
   res.json({ ok: true, data: await service.setBudgetBaseIncome(req.auth.userId, req.params.id, req.validated.body.amount) })
+}))
+
+// Ajustes de un gasto fijo (suscripción/cuota) solo en este presupuesto:
+// incluirlo o no, y un monto hipotético que no toca el valor real.
+router.put('/budgets/:id/fixed/:sourceId', validateBody(budgetFixedOverrideSchema), asyncHandler(async (req, res) => {
+  const data = await service.setBudgetFixedOverride(req.auth.userId, req.params.id, req.params.sourceId, req.validated.body)
+  res.json({ ok: true, data })
 }))
 
 router.put('/budgets/:id', validateBody(budgetRenameSchema), asyncHandler(async (req, res) => {

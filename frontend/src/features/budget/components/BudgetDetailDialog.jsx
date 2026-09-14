@@ -32,10 +32,12 @@ import {
   useDeleteBudgetItemMutation,
   useRenameBudgetMutation,
   useDeleteBudgetMutation,
+  useSetBudgetFixedOverrideMutation,
 } from '../budgetApi'
 import { AddBudgetItemDialog } from './AddBudgetItemDialog'
 import { BudgetNameDialog } from './BudgetNameDialog'
 import { BaseIncomeDialog } from './BaseIncomeDialog'
+import { FixedAmountDialog } from './FixedAmountDialog'
 
 const ORIGINAL = '__original__' // ver cada moneda en la suya (sin conversión)
 
@@ -45,10 +47,12 @@ function BudgetDetail({ budget, onClose }) {
   const [deleteItem] = useDeleteBudgetItemMutation()
   const [renameBudget, { isLoading: renaming }] = useRenameBudgetMutation()
   const [deleteBudget] = useDeleteBudgetMutation()
+  const [setFixedOverride] = useSetBudgetFixedOverrideMutation()
   const [addOpen, setAddOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [baseOpen, setBaseOpen] = useState(false)
+  const [fixedItem, setFixedItem] = useState(null)
 
   // Conversión display-only: no toca ningún dato guardado.
   const [displayCurrency, setDisplayCurrency] = useState(ORIGINAL)
@@ -65,6 +69,20 @@ function BudgetDetail({ budget, onClose }) {
       toast.success('Ítem eliminado')
     } catch (err) {
       toast.error(err?.message ?? 'No se pudo eliminar')
+    }
+  }
+
+  // Incluir/excluir un gasto fijo solo en este presupuesto (conserva el monto hipotético).
+  async function handleToggleFixed(item, included) {
+    try {
+      await setFixedOverride({
+        id: budget.id,
+        sourceId: item.source_id,
+        included,
+        amount: item.override_amount ?? null,
+      }).unwrap()
+    } catch (err) {
+      toast.error(err?.message ?? 'No se pudo actualizar')
     }
   }
 
@@ -205,14 +223,41 @@ function BudgetDetail({ budget, onClose }) {
               {rows.map((item) => {
                 const income = item.flow_type === 'INCOME'
                 const isSystem = item.source_kind === 'SYSTEM'
+                const excluded = isSystem && !item.included
                 return (
-                  <li key={item.id} className="flex items-center gap-3 py-2.5">
-                    <div className="min-w-0 flex-1">
+                  <li
+                    key={item.id}
+                    className="group flex items-center gap-3 rounded-sm px-2 py-2.5 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="w-4 shrink-0">
+                      {isSystem && (
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 cursor-pointer accent-primary"
+                          checked={!!item.included}
+                          onChange={(e) => handleToggleFixed(item, e.target.checked)}
+                          aria-label={`Incluir ${item.label} en este presupuesto`}
+                        />
+                      )}
+                    </div>
+                    <div
+                      className={`min-w-0 flex-1 transition-opacity ${excluded ? 'opacity-60 group-hover:opacity-100' : ''}`}
+                    >
                       <div className="flex items-center gap-2">
                         <span className="truncate text-sm text-foreground">{item.label}</span>
                         {isSystem && (
                           <Badge variant="secondary" className="rounded-sm px-1.5 py-0 text-[11px] font-normal">
                             Fijo
+                          </Badge>
+                        )}
+                        {excluded && (
+                          <Badge variant="outline" className="rounded-sm border-dashed px-1.5 py-0 text-[11px] font-normal">
+                            No cuenta
+                          </Badge>
+                        )}
+                        {item.override_amount != null && (
+                          <Badge variant="outline" className="rounded-sm px-1.5 py-0 text-[11px] font-normal">
+                            Monto ajustado
                           </Badge>
                         )}
                         {item.paid && (
@@ -229,6 +274,7 @@ function BudgetDetail({ budget, onClose }) {
                       tone={income ? 'income' : 'expense'}
                       signed
                       size="sm"
+                      className={excluded ? 'line-through opacity-60 transition-opacity group-hover:opacity-100' : undefined}
                     />
 
                     <div className="w-8 shrink-0">
@@ -239,6 +285,16 @@ function BudgetDetail({ budget, onClose }) {
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           aria-label="Editar sueldo base"
                           onClick={() => setBaseOpen(true)}
+                        >
+                          <PencilSimple className="h-4 w-4" />
+                        </Button>
+                      ) : isSystem && !item.paid ? (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          aria-label={`Ajustar monto de ${item.label} en este presupuesto`}
+                          onClick={() => setFixedItem(item)}
                         >
                           <PencilSimple className="h-4 w-4" />
                         </Button>
@@ -264,12 +320,18 @@ function BudgetDetail({ budget, onClose }) {
 
       <AddBudgetItemDialog open={addOpen} onOpenChange={setAddOpen} budgetId={budget.id} />
 
+      <FixedAmountDialog
+        open={!!fixedItem}
+        onOpenChange={(o) => !o && setFixedItem(null)}
+        budgetId={budget.id}
+        item={fixedItem}
+      />
+
       <BaseIncomeDialog
         open={baseOpen}
         onOpenChange={setBaseOpen}
         budgetId={budget.id}
         initialAmount={baseItem?.amount ?? 0}
-        initialScope={baseItem?.base_scope ?? 'GENERAL'}
       />
 
       <BudgetNameDialog

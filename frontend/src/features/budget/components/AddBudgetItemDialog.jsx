@@ -25,9 +25,9 @@ function BudgetItemForm({ budgetId, onClose }) {
     currency_code: 'ARS',
     // Solo para "Cambio": sale en una moneda, entra en otra.
     out_amount: '',
-    out_currency: 'USD',
+    out_currency: 'ARS',
     in_amount: '',
-    in_currency: 'ARS',
+    in_currency: 'USD',
   })
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }))
   const isChange = form.flow_type === 'CHANGE'
