@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { AccountSelect, GoalSelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { usePayInstallmentMutation } from '../installmentsApi'
+import { runMutation } from '@/lib/mutation'
 
 function PayForm({ installment, onClose }) {
   const [payInstallment, { isLoading }] = usePayInstallmentMutation()
@@ -34,20 +35,16 @@ function PayForm({ installment, onClose }) {
       toast.error('El monto debe ser mayor a cero')
       return
     }
-    try {
-      await payInstallment({
-        installment_id: installment.installment_id,
-        installment_number: nextNumber,
-        amount_override: amount,
-        account_id: form.account_id === NONE ? null : form.account_id,
-        goal_id: form.goal_id === NONE ? null : form.goal_id,
-        payment_date: form.payment_date,
-      }).unwrap()
-      toast.success(`Cuota ${nextNumber} pagada`)
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo pagar')
-    }
+    const { ok } = await runMutation(payInstallment({
+      installment_id: installment.installment_id,
+      installment_number: nextNumber,
+      amount_override: amount,
+      account_id: form.account_id === NONE ? null : form.account_id,
+      goal_id: form.goal_id === NONE ? null : form.goal_id,
+      payment_date: form.payment_date,
+    }), { success: `Cuota ${nextNumber} pagada`, error: 'No se pudo pagar' })
+    if (!ok) return
+    onClose()
   }
 
   return (

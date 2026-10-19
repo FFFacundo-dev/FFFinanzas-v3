@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { AccountSelect, GoalSelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { usePaySubscriptionMutation } from '../subscriptionsApi'
+import { runMutation } from '@/lib/mutation'
 
 function currentMonth() {
   return toInputDate(new Date()).slice(0, 7) // YYYY-MM
@@ -40,21 +41,17 @@ function PayForm({ subscription, onClose }) {
       toast.error('El monto debe ser mayor a cero')
       return
     }
-    try {
-      await paySub({
-        subscription_id: subscription.id,
-        amount,
-        account_id: form.account_id === NONE ? null : form.account_id,
-        goal_id: form.goal_id === NONE ? null : form.goal_id,
-        payment_date: form.payment_date,
-        period_month: `${form.period_month}-01`,
-        notes: form.notes.trim() || null,
-      }).unwrap()
-      toast.success('Pago registrado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo registrar el pago')
-    }
+    const { ok } = await runMutation(paySub({
+      subscription_id: subscription.id,
+      amount,
+      account_id: form.account_id === NONE ? null : form.account_id,
+      goal_id: form.goal_id === NONE ? null : form.goal_id,
+      payment_date: form.payment_date,
+      period_month: `${form.period_month}-01`,
+      notes: form.notes.trim() || null,
+    }), { success: 'Pago registrado', error: 'No se pudo registrar el pago' })
+    if (!ok) return
+    onClose()
   }
 
   return (

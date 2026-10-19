@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, CreditCard, CurrencyDollarSimple, Trash } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -15,6 +14,7 @@ import {
 } from './installmentsApi'
 import { CreateInstallmentDialog } from './components/CreateInstallmentDialog'
 import { PayInstallmentDialog } from './components/PayInstallmentDialog'
+import { runMutation } from '@/lib/mutation'
 
 function InstallmentCard({ item, onPay, onDelete }) {
   const total = Number(item.total_installments)
@@ -117,14 +117,8 @@ export function InstallmentsView() {
   const completed = items.filter((i) => Number(i.remaining) <= 0)
 
   async function confirmDelete() {
-    try {
-      await deleteInstallment(toDelete.installment_id).unwrap()
-      toast.success('Cuota eliminada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setToDelete(null)
-    }
+    await runMutation(deleteInstallment(toDelete.installment_id), { success: 'Cuota eliminada', error: 'No se pudo eliminar' })
+    setToDelete(null)
   }
 
   return (

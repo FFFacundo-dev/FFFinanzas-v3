@@ -37,3 +37,7 @@ Thumbs.db
 # Agent skills (instalados localmente, no se versionan)
 .agents/
 skills-lock.json
+
+# Datos generados por herramientas (codegraph, graphify, archify)
+.utils/
+.codegraph

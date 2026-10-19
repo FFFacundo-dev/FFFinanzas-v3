@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { ArrowDown, ArrowUp, ArrowsClockwise, FolderSimple, Wallet } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
@@ -28,6 +27,7 @@ import { AccountManagerDialog } from '@/features/accounts/components/AccountMana
 import { CreateExchangeDialog } from '@/features/exchanges/components/CreateExchangeDialog'
 import { ExchangesList } from '@/features/exchanges/components/ExchangesList'
 import { GoalActivityTable } from '@/features/goals/components/GoalActivityTable'
+import { runMutation } from '@/lib/mutation'
 
 export function TransactionsView() {
   const [filter, setFilter] = useState('ALL')
@@ -56,25 +56,13 @@ export function TransactionsView() {
   }
 
   async function confirmDeleteTx() {
-    try {
-      await deleteTx(txToDelete.id).unwrap()
-      toast.success('Movimiento eliminado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setTxToDelete(null)
-    }
+    await runMutation(deleteTx(txToDelete.id), { success: 'Movimiento eliminado', error: 'No se pudo eliminar' })
+    setTxToDelete(null)
   }
 
   async function confirmDeleteEx() {
-    try {
-      await deleteExchange(exToDelete.id).unwrap()
-      toast.success('Cambio eliminado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setExToDelete(null)
-    }
+    await runMutation(deleteExchange(exToDelete.id), { success: 'Cambio eliminado', error: 'No se pudo eliminar' })
+    setExToDelete(null)
   }
 
   return (

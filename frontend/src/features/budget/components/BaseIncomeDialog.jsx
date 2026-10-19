@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +14,7 @@ import {
   useSetGeneralBaseIncomeMutation,
   useSetBudgetBaseIncomeMutation,
 } from '../budgetApi'
+import { runMutation } from '@/lib/mutation'
 
 // Con budgetId edita solo ese presupuesto (override); sin él, el sueldo base general.
 function BaseIncomeForm({ budgetId, initialAmount, onClose }) {
@@ -27,16 +27,12 @@ function BaseIncomeForm({ budgetId, initialAmount, onClose }) {
     e.preventDefault()
     const value = Number(amount || 0)
     setSaving(true)
-    try {
-      if (budgetId) await setOverride({ id: budgetId, amount: value }).unwrap()
-      else await setGeneral(value).unwrap()
-      toast.success('Sueldo base actualizado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    } finally {
-      setSaving(false)
-    }
+    const { ok } = await runMutation(
+      budgetId ? setOverride({ id: budgetId, amount: value }) : setGeneral(value),
+      { success: 'Sueldo base actualizado', error: 'No se pudo guardar' },
+    )
+    setSaving(false)
+    if (ok) onClose()
   }
 
   return (

@@ -2,7 +2,6 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/require-auth.js'
 
 import currenciesRoutes from '../modules/currencies/currencies.routes.js'
-import allowedUsersRoutes from '../modules/allowed-users/allowed-users.routes.js'
 import exchangeRatesRoutes from '../modules/exchange-rates/exchange-rates.routes.js'
 import categoriesRoutes from '../modules/categories/categories.routes.js'
 import accountsRoutes from '../modules/accounts/accounts.routes.js'
@@ -25,7 +24,6 @@ const router = Router()
 router.use(requireAuth)
 
 router.use('/currencies', currenciesRoutes)
-router.use('/allowed-users', allowedUsersRoutes)
 router.use('/exchange-rates', exchangeRatesRoutes)
 router.use('/categories', categoriesRoutes)
 router.use('/accounts', accountsRoutes)

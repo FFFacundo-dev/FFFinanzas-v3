@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { MoneyInput } from '@/components/common/MoneyInput'
 import { formatCurrency } from '@/lib/format'
 import { useSetBudgetFixedOverrideMutation } from '../budgetApi'
+import { runMutation } from '@/lib/mutation'
 
 // Monto hipotético de un gasto fijo dentro de este presupuesto.
 // No toca la suscripción/cuota original: el valor real sigue igual en todos lados.
@@ -23,20 +24,15 @@ function FixedAmountForm({ budgetId, item, onClose }) {
 
   async function save(value) {
     setSaving(true)
-    try {
-      await setOverride({
-        id: budgetId,
-        sourceId: item.source_id,
-        included: !!item.included,
-        amount: value,
-      }).unwrap()
-      toast.success(value == null ? 'Monto real restaurado' : 'Monto actualizado en este presupuesto')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    } finally {
-      setSaving(false)
-    }
+    const { ok } = await runMutation(setOverride({
+      id: budgetId,
+      sourceId: item.source_id,
+      included: !!item.included,
+      amount: value,
+    }), { success: value == null ? 'Monto real restaurado' : 'Monto actualizado en este presupuesto', error: 'No se pudo guardar' })
+    if (!ok) return
+    onClose()
+    setSaving(false)
   }
 
   function handleSubmit(e) {

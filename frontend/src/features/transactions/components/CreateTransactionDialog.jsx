@@ -27,6 +27,7 @@ import {
   useCreateTransactionMutation,
   useUpdateTransactionMutation,
 } from '../transactionsApi'
+import { runMutation } from '@/lib/mutation'
 
 const NONE = '__none__'
 
@@ -101,18 +102,15 @@ function TransactionForm({ transaction, movementType, onClose }) {
       account_id: isExpense ? form.account_id : null,
     }
 
-    try {
-      if (isEdit) {
-        await updateTx({ id: transaction.id, ...body }).unwrap()
-        toast.success('Movimiento actualizado')
-      } else {
-        await createTx(body).unwrap()
-        toast.success(isExpense ? 'Gasto registrado' : 'Ingreso registrado')
-      }
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    }
+    const success = isEdit
+      ? 'Movimiento actualizado'
+      : isExpense ? 'Gasto registrado' : 'Ingreso registrado'
+    const { ok } = await runMutation(
+      isEdit ? updateTx({ id: transaction.id, ...body }) : createTx(body),
+      { success, error: 'No se pudo guardar' },
+    )
+    if (!ok) return
+    onClose()
   }
 
   const title = isEdit ? 'Editar movimiento' : isExpense ? 'Nuevo gasto' : 'Nuevo ingreso'

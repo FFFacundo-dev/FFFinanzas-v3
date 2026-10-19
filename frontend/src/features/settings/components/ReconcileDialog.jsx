@@ -19,6 +19,7 @@ import {
   useCreateCategoryMutation,
 } from '@/features/categories/categoriesApi'
 import { useCreateTransactionMutation } from '@/features/transactions/transactionsApi'
+import { runMutation } from '@/lib/mutation'
 
 const ADJUST_CATEGORY = 'Ajuste'
 
@@ -67,21 +68,17 @@ function ReconcileForm({ currency, currentBalance, onClose }) {
 
     const categoryId = await ensureAdjustCategory(categories, createCategory)
 
-    try {
-      await createTx({
-        movement_type: isExpense ? 'EXPENSE' : 'INCOME',
-        amount: Math.abs(diff),
-        currency_code: currency,
-        category_id: categoryId,
-        account_id: isExpense ? accountId : null,
-        date: toInputDate(new Date()),
-        description: `Ajuste de saldo (${currency})`,
-      }).unwrap()
-      toast.success('Pozo conciliado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo conciliar')
-    }
+    const { ok } = await runMutation(createTx({
+      movement_type: isExpense ? 'EXPENSE' : 'INCOME',
+      amount: Math.abs(diff),
+      currency_code: currency,
+      category_id: categoryId,
+      account_id: isExpense ? accountId : null,
+      date: toInputDate(new Date()),
+      description: `Ajuste de saldo (${currency})`,
+    }), { success: 'Pozo conciliado', error: 'No se pudo conciliar' })
+    if (!ok) return
+    onClose()
   }
 
   return (

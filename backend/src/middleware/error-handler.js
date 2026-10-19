@@ -6,7 +6,8 @@ const UNIQUE_CONSTRAINT_MESSAGES = {
   subscription_payments_unique_period: 'Subscription payment for this month already exists',
   installment_payments_unique_number: 'Installment payment for that installment number already exists',
   accounts_user_name_unique: 'An account with that name already exists',
-  categories_user_name_unique: 'A category with that name already exists'
+  categories_user_name_unique: 'A category with that name already exists',
+  goals_user_name_unique: 'Ya existe una meta con ese nombre'
 }
 
 export function errorHandler(err, req, res, _next) {

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CurrencySelect } from '@/components/common/EntitySelects'
 import { useCreateBudgetItemMutation } from '../budgetApi'
+import { runMutation } from '@/lib/mutation'
 
 function BudgetItemForm({ budgetId, onClose }) {
   const [createItem, { isLoading }] = useCreateBudgetItemMutation()
@@ -52,28 +53,28 @@ function BudgetItemForm({ budgetId, onClose }) {
         return
       }
       const label = `Cambio ${form.out_currency}→${form.in_currency}: ${form.label.trim()}`
-      try {
-        await createItem({
-          budget_id: budgetId,
-          label,
-          amount: out,
-          currency_code: form.out_currency,
-          flow_type: 'EXPENSE',
-          item_type: 'ONE_TIME',
-        }).unwrap()
-        await createItem({
-          budget_id: budgetId,
-          label,
-          amount: inn,
-          currency_code: form.in_currency,
-          flow_type: 'INCOME',
-          item_type: 'ONE_TIME',
-        }).unwrap()
-        toast.success('Cambio agregado')
-        onClose()
-      } catch (err) {
-        toast.error(err?.message ?? 'No se pudo agregar')
-      }
+      // Un cambio son dos ítems (lo que sale y lo que entra). No es atómico: si el
+      // segundo falla, el primero ya quedó cargado, igual que antes de este refactor.
+      const salida = await runMutation(createItem({
+        budget_id: budgetId,
+        label,
+        amount: out,
+        currency_code: form.out_currency,
+        flow_type: 'EXPENSE',
+        item_type: 'ONE_TIME',
+      }), { error: 'No se pudo agregar' })
+      if (!salida.ok) return
+      const entrada = await runMutation(createItem({
+        budget_id: budgetId,
+        label,
+        amount: inn,
+        currency_code: form.in_currency,
+        flow_type: 'INCOME',
+        item_type: 'ONE_TIME',
+      }), { error: 'No se pudo agregar' })
+      if (!entrada.ok) return
+      toast.success('Cambio agregado')
+      onClose()
       return
     }
 
@@ -81,20 +82,16 @@ function BudgetItemForm({ budgetId, onClose }) {
       toast.error('El monto debe ser mayor a cero')
       return
     }
-    try {
-      await createItem({
-        budget_id: budgetId,
-        label: form.label.trim(),
-        amount: Number(form.amount),
-        currency_code: form.currency_code,
-        flow_type: form.flow_type,
-        item_type: 'ONE_TIME',
-      }).unwrap()
-      toast.success('Ítem agregado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo agregar')
-    }
+    const { ok } = await runMutation(createItem({
+      budget_id: budgetId,
+      label: form.label.trim(),
+      amount: Number(form.amount),
+      currency_code: form.currency_code,
+      flow_type: form.flow_type,
+      item_type: 'ONE_TIME',
+    }), { success: 'Ítem agregado', error: 'No se pudo agregar' })
+    if (!ok) return
+    onClose()
   }
 
   return (

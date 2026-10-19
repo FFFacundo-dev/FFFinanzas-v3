@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { MoneyInput } from '@/components/common/MoneyInput'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { useCreateGoalMovementMutation } from '../goalsApi'
+import { runMutation } from '@/lib/mutation'
 
 /**
  * Concilia el saldo reservado de UNA meta: el usuario ingresa el monto real y
@@ -39,17 +40,13 @@ function GoalReconcileForm({ goal, onClose }) {
       onClose()
       return
     }
-    try {
-      await createMovement({
-        id: goal.id,
-        movement_type: diff > 0 ? 'ALLOCATE' : 'RELEASE',
-        amount: Math.abs(diff),
-      }).unwrap()
-      toast.success('Meta conciliada')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo conciliar')
-    }
+    const { ok } = await runMutation(createMovement({
+      id: goal.id,
+      movement_type: diff > 0 ? 'ALLOCATE' : 'RELEASE',
+      amount: Math.abs(diff),
+    }), { success: 'Meta conciliada', error: 'No se pudo conciliar' })
+    if (!ok) return
+    onClose()
   }
 
   return (

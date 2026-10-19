@@ -1,11 +1,9 @@
 import { Router } from 'express'
 import { asyncHandler } from '../../utils/async-handler.js'
-import { listCurrencies } from './currencies.service.js'
+import * as controller from './currencies.controller.js'
 
 const router = Router()
 
-router.get('/', asyncHandler(async (_req, res) => {
-  res.json({ ok: true, data: await listCurrencies() })
-}))
+router.get('/', asyncHandler(controller.list))
 
 export default router

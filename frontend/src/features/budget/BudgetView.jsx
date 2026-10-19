@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, ArrowsClockwise, Wallet } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -11,6 +10,7 @@ import { BudgetCard } from './components/BudgetCard'
 import { BudgetDetailDialog } from './components/BudgetDetailDialog'
 import { BudgetNameDialog } from './components/BudgetNameDialog'
 import { BaseIncomeDialog } from './components/BaseIncomeDialog'
+import { runMutation } from '@/lib/mutation'
 
 export function BudgetView() {
   // Todos los presupuestos del usuario (de cualquier mes).
@@ -28,13 +28,9 @@ export function BudgetView() {
   const visible = term ? budgetList.filter((b) => b.name.toLowerCase().includes(term)) : budgetList
 
   async function handleCreateBudget(name, period_month) {
-    try {
-      await createBudget({ name, period_month }).unwrap()
-      setNewOpen(false)
-      toast.success('Presupuesto creado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo crear')
-    }
+    const { ok } = await runMutation(createBudget({ name, period_month }), { success: 'Presupuesto creado', error: 'No se pudo crear' })
+    if (!ok) return
+    setNewOpen(false)
   }
 
   return (
