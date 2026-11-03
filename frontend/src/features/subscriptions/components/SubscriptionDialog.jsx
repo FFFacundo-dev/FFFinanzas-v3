@@ -121,7 +121,7 @@ function SubscriptionForm({ subscription, onClose }) {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="sub-amount">Monto mensual</Label>
+            <Label htmlFor="sub-amount">Monto mensual (vacío = variable)</Label>
             <MoneyInput
               id="sub-amount"
               value={form.default_amount}

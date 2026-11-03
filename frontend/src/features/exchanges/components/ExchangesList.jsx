@@ -45,7 +45,9 @@ export function ExchangesList({ items, isLoading, onDelete }) {
               <span className="tabular font-mono">{formatDate(x.date)}</span>
               <span>·</span>
               <span className="tabular font-mono">
-                1 {x.from_currency_code} = {formatAmount(x.exchange_rate)} {x.to_currency_code}
+                {Number(x.exchange_rate) < 1
+                  ? `1 ${x.to_currency_code} = ${formatAmount(1 / Number(x.exchange_rate))} ${x.from_currency_code}`
+                  : `1 ${x.from_currency_code} = ${formatAmount(x.exchange_rate)} ${x.to_currency_code}`}
               </span>
               {x.description && (
                 <>

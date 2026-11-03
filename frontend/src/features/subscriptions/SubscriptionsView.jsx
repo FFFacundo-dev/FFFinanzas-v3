@@ -92,13 +92,7 @@ export function SubscriptionsView() {
                   </div>
 
                   <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setPayFor(s)}
-                      disabled={s.default_amount == null}
-                    >
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setPayFor(s)}>
                       <CurrencyDollarSimple className="h-4 w-4" />
                       Pagar
                     </Button>

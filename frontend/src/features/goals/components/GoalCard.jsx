@@ -116,7 +116,7 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
                     Conciliar
                   </DropdownMenuItem>
                 )}
-                {!isParent && !archived && current > 0 && (
+                {!archived && current > 0 && (
                   <DropdownMenuItem onClick={() => onWithdrawAll(goal)}>
                     <Minus className="h-4 w-4" />
                     Retirar todo

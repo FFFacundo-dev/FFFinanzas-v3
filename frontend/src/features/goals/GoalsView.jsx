@@ -66,11 +66,17 @@ export function GoalsView() {
   ).filter(([, total]) => total > 0)
 
   async function confirmWithdrawAll() {
-    await runMutation(createMovement({
-      id: toWithdrawAll.id,
-      movement_type: 'RELEASE',
-      amount: Number(toWithdrawAll.current_amount),
-    }), { success: 'Se retiró todo lo reservado de la meta', error: 'No se pudo retirar' })
+    const kids = childrenOf(toWithdrawAll.id)
+    // Un grupo no tiene saldo propio: se libera cada hija con saldo.
+    const targets = kids.length ? kids.filter((c) => Number(c.current_amount) > 0) : [toWithdrawAll]
+    // ponytail: no atómico; cada RELEASE es válido solo y reintentar es inocuo.
+    const releases = targets.map((g) =>
+      createMovement({ id: g.id, movement_type: 'RELEASE', amount: Number(g.current_amount) }),
+    )
+    await runMutation(
+      { unwrap: () => Promise.all(releases.map((r) => r.unwrap())) },
+      { success: kids.length ? 'Se retiró todo lo reservado del grupo' : 'Se retiró todo lo reservado de la meta', error: 'No se pudo retirar' },
+    )
     setToWithdrawAll(null)
   }
 
@@ -191,7 +197,11 @@ export function GoalsView() {
         open={Boolean(toWithdrawAll)}
         onOpenChange={(o) => !o && setToWithdrawAll(null)}
         title="Retirar todo"
-        description={`Se liberará todo lo reservado de "${toWithdrawAll?.name}" al disponible. La meta queda en cero.`}
+        description={
+          toWithdrawAll && childrenOf(toWithdrawAll.id).length
+            ? `Se liberará todo lo reservado de las metas del grupo "${toWithdrawAll.name}" al disponible. Todas quedan en cero.`
+            : `Se liberará todo lo reservado de "${toWithdrawAll?.name}" al disponible. La meta queda en cero.`
+        }
         confirmLabel="Retirar todo"
         onConfirm={confirmWithdrawAll}
       />
