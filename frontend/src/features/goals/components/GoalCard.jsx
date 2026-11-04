@@ -204,6 +204,15 @@ export function GoalCard({ goal, children = [], onAllocate, onRelease, onEdit, o
                     >
                       <PencilSimple className="h-3.5 w-3.5" />
                     </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      aria-label={`Eliminar ${c.name}`}
+                      onClick={() => onDelete(c)}
+                    >
+                      <Trash className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
               ))}
