@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, Trash, PencilSimple, ChartPieSlice } from '@phosphor-icons/react'
 import {
   Dialog,
@@ -38,6 +37,7 @@ import { AddBudgetItemDialog } from './AddBudgetItemDialog'
 import { BudgetNameDialog } from './BudgetNameDialog'
 import { BaseIncomeDialog } from './BaseIncomeDialog'
 import { FixedAmountDialog } from './FixedAmountDialog'
+import { runMutation } from '@/lib/mutation'
 
 const ORIGINAL = '__original__' // ver cada moneda en la suya (sin conversión)
 
@@ -64,26 +64,17 @@ function BudgetDetail({ budget, onClose }) {
   const shownCurrency = (from) => (converting ? displayCurrency : from)
 
   async function handleDeleteItem(item) {
-    try {
-      await deleteItem(item.id).unwrap()
-      toast.success('Ítem eliminado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    }
+    await runMutation(deleteItem(item.id), { success: 'Ítem eliminado', error: 'No se pudo eliminar' })
   }
 
   // Incluir/excluir un gasto fijo solo en este presupuesto (conserva el monto hipotético).
   async function handleToggleFixed(item, included) {
-    try {
-      await setFixedOverride({
-        id: budget.id,
-        sourceId: item.source_id,
-        included,
-        amount: item.override_amount ?? null,
-      }).unwrap()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo actualizar')
-    }
+    await runMutation(setFixedOverride({
+      id: budget.id,
+      sourceId: item.source_id,
+      included,
+      amount: item.override_amount ?? null,
+    }), { error: 'No se pudo actualizar' })
   }
 
   async function handleRename(name) {
@@ -91,23 +82,15 @@ function BudgetDetail({ budget, onClose }) {
       setRenameOpen(false)
       return
     }
-    try {
-      await renameBudget({ id: budget.id, name }).unwrap()
-      setRenameOpen(false)
-      toast.success('Presupuesto renombrado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo renombrar')
-    }
+    const { ok } = await runMutation(renameBudget({ id: budget.id, name }), { success: 'Presupuesto renombrado', error: 'No se pudo renombrar' })
+    if (!ok) return
+    setRenameOpen(false)
   }
 
   async function handleDeleteBudget() {
-    try {
-      await deleteBudget(budget.id).unwrap()
-      toast.success('Presupuesto eliminado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    }
+    const { ok } = await runMutation(deleteBudget(budget.id), { success: 'Presupuesto eliminado', error: 'No se pudo eliminar' })
+    if (!ok) return
+    onClose()
   }
 
   const rows = items.data ?? []

@@ -21,6 +21,7 @@ import {
 } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { useCreateInstallmentMutation } from '../installmentsApi'
+import { runMutation } from '@/lib/mutation'
 
 function initialForm() {
   return {
@@ -84,13 +85,9 @@ function InstallmentForm({ onClose }) {
       return
     }
 
-    try {
-      await createInstallment(body).unwrap()
-      toast.success('Cuota creada')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo crear')
-    }
+    const { ok } = await runMutation(createInstallment(body), { success: 'Cuota creada', error: 'No se pudo crear' })
+    if (!ok) return
+    onClose()
   }
 
   return (

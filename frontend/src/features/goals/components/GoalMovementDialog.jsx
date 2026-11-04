@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { useGetBalancesSummaryQuery } from '@/features/dashboard/dashboardApi'
 import { useCreateGoalMovementMutation } from '../goalsApi'
+import { runMutation } from '@/lib/mutation'
 
 function MovementForm({ goal, type, onClose }) {
   const isAllocate = type === 'ALLOCATE'
@@ -43,13 +44,9 @@ function MovementForm({ goal, type, onClose }) {
       )
       return
     }
-    try {
-      await createMovement({ id: goal.id, movement_type: type, amount: value }).unwrap()
-      toast.success(isAllocate ? 'Aporte registrado' : 'Retiro registrado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo registrar')
-    }
+    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: type, amount: value }), { success: isAllocate ? 'Aporte registrado' : 'Retiro registrado', error: 'No se pudo registrar' })
+    if (!ok) return
+    onClose()
   }
 
   return (

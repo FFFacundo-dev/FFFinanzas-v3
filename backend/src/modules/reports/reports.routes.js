@@ -2,33 +2,15 @@ import { Router } from 'express'
 import { asyncHandler } from '../../utils/async-handler.js'
 import { validateQuery } from '../../middleware/validate.js'
 import { monthlyCashflowQuerySchema, categoryBreakdownQuerySchema } from './reports.schema.js'
-import * as service from './reports.service.js'
+import * as controller from './reports.controller.js'
 
 const router = Router()
 
-router.get('/subscription-debt-by-category', asyncHandler(async (req, res) => {
-  res.json({ ok: true, data: await service.subscriptionDebtByCategory(req.auth.userId) })
-}))
-
-router.get('/subscription-debt-by-account', asyncHandler(async (req, res) => {
-  res.json({ ok: true, data: await service.subscriptionDebtByAccount(req.auth.userId) })
-}))
-
-router.get('/installment-debt-by-category', asyncHandler(async (req, res) => {
-  res.json({ ok: true, data: await service.installmentDebtByCategory(req.auth.userId) })
-}))
-
-router.get('/installment-debt-by-account', asyncHandler(async (req, res) => {
-  res.json({ ok: true, data: await service.installmentDebtByAccount(req.auth.userId) })
-}))
-
-router.get('/monthly-cashflow', validateQuery(monthlyCashflowQuerySchema), asyncHandler(async (req, res) => {
-  res.json({ ok: true, data: await service.monthlyCashflow(req.auth.userId, req.validated.query) })
-}))
-
-router.get('/category-breakdown', validateQuery(categoryBreakdownQuerySchema), asyncHandler(async (req, res) => {
-  const { data, meta } = await service.categoryBreakdown(req.auth.userId, req.validated.query)
-  res.json({ ok: true, data, meta })
-}))
+router.get('/subscription-debt-by-category', asyncHandler(controller.subscriptionDebtByCategory))
+router.get('/subscription-debt-by-account', asyncHandler(controller.subscriptionDebtByAccount))
+router.get('/installment-debt-by-category', asyncHandler(controller.installmentDebtByCategory))
+router.get('/installment-debt-by-account', asyncHandler(controller.installmentDebtByAccount))
+router.get('/monthly-cashflow', validateQuery(monthlyCashflowQuerySchema), asyncHandler(controller.monthlyCashflow))
+router.get('/category-breakdown', validateQuery(categoryBreakdownQuerySchema), asyncHandler(controller.categoryBreakdown))
 
 export default router

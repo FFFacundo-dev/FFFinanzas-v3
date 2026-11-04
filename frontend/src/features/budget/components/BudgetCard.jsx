@@ -1,9 +1,9 @@
-import { toast } from 'sonner'
 import { Copy } from '@phosphor-icons/react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { useGetBudgetSummaryQuery, useDuplicateBudgetMutation } from '../budgetApi'
+import { runMutation } from '@/lib/mutation'
 
 const monthLabelFmt = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
 const monthLabel = (periodMonth) => monthLabelFmt.format(new Date(`${String(periodMonth).slice(0, 10)}T00:00:00`))
@@ -14,12 +14,7 @@ export function BudgetCard({ budget, onOpen }) {
   const [duplicate, { isLoading: duplicating }] = useDuplicateBudgetMutation()
 
   async function handleDuplicate() {
-    try {
-      await duplicate(budget.id).unwrap()
-      toast.success('Presupuesto duplicado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo duplicar')
-    }
+    await runMutation(duplicate(budget.id), { success: 'Presupuesto duplicado', error: 'No se pudo duplicar' })
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { toast } from 'sonner'
@@ -7,13 +7,16 @@ import { selectIsAuthenticated, clearCredentials } from '@/features/auth/authSli
 import { selectTheme } from '@/features/ui/uiSlice'
 import { AppShell } from '@/components/layout/AppShell'
 import { AuthPage } from '@/features/auth/AuthPage'
-import { DashboardView } from '@/features/dashboard/DashboardView'
-import { TransactionsView } from '@/features/transactions/TransactionsView'
-import { InstallmentsView } from '@/features/installments/InstallmentsView'
-import { SubscriptionsView } from '@/features/subscriptions/SubscriptionsView'
-import { GoalsView } from '@/features/goals/GoalsView'
-import { BudgetView } from '@/features/budget/BudgetView'
-import { SettingsView } from '@/features/settings/SettingsView'
+
+// Cada vista se baja cuando se entra por primera vez. El dashboard arrastra recharts,
+// que es la mitad del bundle, y no hace falta para ver movimientos o metas.
+const DashboardView = lazy(() => import('@/features/dashboard/DashboardView').then((m) => ({ default: m.DashboardView })))
+const TransactionsView = lazy(() => import('@/features/transactions/TransactionsView').then((m) => ({ default: m.TransactionsView })))
+const InstallmentsView = lazy(() => import('@/features/installments/InstallmentsView').then((m) => ({ default: m.InstallmentsView })))
+const SubscriptionsView = lazy(() => import('@/features/subscriptions/SubscriptionsView').then((m) => ({ default: m.SubscriptionsView })))
+const GoalsView = lazy(() => import('@/features/goals/GoalsView').then((m) => ({ default: m.GoalsView })))
+const BudgetView = lazy(() => import('@/features/budget/BudgetView').then((m) => ({ default: m.BudgetView })))
+const SettingsView = lazy(() => import('@/features/settings/SettingsView').then((m) => ({ default: m.SettingsView })))
 
 /** Aplica el tema (clase .dark en <html>) desde el uiSlice. */
 function useThemeSync() {

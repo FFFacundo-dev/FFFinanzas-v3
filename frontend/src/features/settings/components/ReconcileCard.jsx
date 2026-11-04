@@ -12,7 +12,12 @@ import { ReconcileDialog } from './ReconcileDialog'
 export function ReconcileCard() {
   const { data: currencies = [], isLoading: loadingCur } = useGetCurrenciesQuery()
   const { data: balances = [], isLoading: loadingBal } = useGetBalanceByCurrencyQuery()
-  const byCode = new Map(balances.map((b) => [b.currency_code, Number(b.total_balance)]))
+  const byCode = new Map(
+    balances.map((b) => [
+      b.currency_code,
+      { total: Number(b.total_balance), available: Number(b.available_balance) },
+    ]),
+  )
 
   const [reconcile, setReconcile] = useState(null)
 
@@ -30,17 +35,21 @@ export function ReconcileCard() {
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border">
             {currencies.map((c) => {
-              const balance = byCode.get(c.code) ?? 0
+              const { total, available } = byCode.get(c.code) ?? { total: 0, available: 0 }
               return (
                 <li key={c.code} className="flex items-center gap-3 px-4 py-3">
                   <span className="w-16 shrink-0 text-sm text-foreground">{c.code}</span>
-                  <div className="flex-1">
-                    <MoneyAmount value={balance} currency={c.code} size="sm" />
+                  <div className="flex flex-1 flex-wrap items-baseline gap-x-4 gap-y-0.5">
+                    <MoneyAmount value={total} currency={c.code} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      Disponible{' '}
+                      <MoneyAmount value={available} currency={c.code} size="sm" />
+                    </span>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setReconcile({ currency: c.code, balance })}
+                    onClick={() => setReconcile({ currency: c.code, total, available })}
                   >
                     <Scales className="h-4 w-4" />
                     Conciliar
@@ -55,7 +64,8 @@ export function ReconcileCard() {
       <ReconcileDialog
         open={Boolean(reconcile)}
         currency={reconcile?.currency}
-        currentBalance={reconcile?.balance ?? 0}
+        totalBalance={reconcile?.total ?? 0}
+        availableBalance={reconcile?.available ?? 0}
         onOpenChange={(o) => !o && setReconcile(null)}
       />
     </Card>

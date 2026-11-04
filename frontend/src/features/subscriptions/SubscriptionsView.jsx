@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, ArrowsClockwise, CurrencyDollarSimple, PencilSimple, Trash } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -15,6 +14,7 @@ import {
 } from './subscriptionsApi'
 import { SubscriptionDialog } from './components/SubscriptionDialog'
 import { PaySubscriptionDialog } from './components/PaySubscriptionDialog'
+import { runMutation } from '@/lib/mutation'
 
 const STATUS_META = {
   ACTIVE: { label: 'Activa', cls: 'bg-income text-income-foreground' },
@@ -31,14 +31,8 @@ export function SubscriptionsView() {
   const [toDelete, setToDelete] = useState(null)
 
   async function confirmDelete() {
-    try {
-      await deleteSub(toDelete.id).unwrap()
-      toast.success('Suscripción eliminada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setToDelete(null)
-    }
+    await runMutation(deleteSub(toDelete.id), { success: 'Suscripción eliminada', error: 'No se pudo eliminar' })
+    setToDelete(null)
   }
 
   return (
@@ -98,13 +92,7 @@ export function SubscriptionsView() {
                   </div>
 
                   <div className="mt-4 flex items-center gap-1 border-t border-border pt-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setPayFor(s)}
-                      disabled={s.default_amount == null}
-                    >
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setPayFor(s)}>
                       <CurrencyDollarSimple className="h-4 w-4" />
                       Pagar
                     </Button>

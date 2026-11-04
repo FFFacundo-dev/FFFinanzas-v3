@@ -71,7 +71,8 @@ Se mantiene cercano a v2 para reusar lógica, pero con la capa visual nueva.
 
 > Igual que v2 en `users`, `allowed_users`, `currencies`, `categories`, `transaction_groups`,
 > `budget_items`. Cambia el núcleo de cuentas/transacciones y desaparecen `transfers`.
-> Schema destino (se versiona en `.database/schema-v3.sql`):
+> Schema destino (se versiona en `backend/migrations/001_schema-v3.sql`; las migraciones
+> posteriores van numeradas en esa misma carpeta y se aplican con `npm run migrate`):
 
 ### 3.1 Sin cambios respecto a v2
 - `users`, `allowed_users` — auth invite-only.

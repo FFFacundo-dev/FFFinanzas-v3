@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
-import { Plus, PencilSimple, Trash, Check, X } from '@phosphor-icons/react'
+import { Plus, PencilSimple, Trash, Check, X, Lock } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,7 @@ import {
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
 } from '../categoriesApi'
+import { runMutation } from '@/lib/mutation'
 
 /** Manager de categorías (patrón v2: lista + alta + rename + delete). */
 export function CategoryManagerDialog({ open, onOpenChange }) {
@@ -36,36 +36,22 @@ export function CategoryManagerDialog({ open, onOpenChange }) {
     e.preventDefault()
     const name = newName.trim()
     if (!name) return
-    try {
-      await createCategory({ name }).unwrap()
-      setNewName('')
-      toast.success('Categoría creada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo crear')
-    }
+    const { ok } = await runMutation(createCategory({ name }), { success: 'Categoría creada', error: 'No se pudo crear' })
+    if (!ok) return
+    setNewName('')
   }
 
   async function handleRename(id) {
     const name = editingName.trim()
     if (!name) return
-    try {
-      await updateCategory({ id, name }).unwrap()
-      setEditingId(null)
-      toast.success('Categoría actualizada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo actualizar')
-    }
+    const { ok } = await runMutation(updateCategory({ id, name }), { success: 'Categoría actualizada', error: 'No se pudo actualizar' })
+    if (!ok) return
+    setEditingId(null)
   }
 
   async function confirmDelete() {
-    try {
-      await deleteCategory(toDelete.id).unwrap()
-      toast.success('Categoría eliminada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setToDelete(null)
-    }
+    await runMutation(deleteCategory(toDelete.id), { success: 'Categoría eliminada', error: 'No se pudo eliminar' })
+    setToDelete(null)
   }
 
   return (
@@ -74,7 +60,7 @@ export function CategoryManagerDialog({ open, onOpenChange }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">Categorías</DialogTitle>
-            <DialogDescription>Organizá tus movimientos por categoría.</DialogDescription>
+            <DialogDescription>Organizá tus movimientos por categoría. Solo los ingresos con la categoría «Ingreso» cuentan en las estadísticas.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleAdd} className="flex gap-2">
@@ -120,6 +106,16 @@ export function CategoryManagerDialog({ open, onOpenChange }) {
                     ) : (
                       <>
                         <span className="flex-1 truncate text-sm">{c.name}</span>
+                        {c.is_system ? (
+                          <span
+                            className="flex items-center gap-1 text-xs text-muted-foreground"
+                            title="Solo los ingresos con esta categoría cuentan en las estadísticas"
+                          >
+                            <Lock className="h-3.5 w-3.5" />
+                            Fija
+                          </span>
+                        ) : (
+                        <>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -136,6 +132,8 @@ export function CategoryManagerDialog({ open, onOpenChange }) {
                         >
                           <Trash className="h-4 w-4" />
                         </Button>
+                        </>
+                        )}
                       </>
                     )}
                   </li>

@@ -11,6 +11,7 @@ import {
   useGetOpeningBalancesQuery,
   useUpsertOpeningBalanceMutation,
 } from '../openingBalancesApi'
+import { runMutation } from '@/lib/mutation'
 
 function Row({ code, label, savedAmount }) {
   const [upsert, { isLoading }] = useUpsertOpeningBalanceMutation()
@@ -23,12 +24,7 @@ function Row({ code, label, savedAmount }) {
       toast.error('Ingresá un número válido')
       return
     }
-    try {
-      await upsert({ currency_code: code, amount }).unwrap()
-      toast.success(`Apertura de ${code} guardada`)
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    }
+    await runMutation(upsert({ currency_code: code, amount }), { success: `Apertura de ${code} guardada`, error: 'No se pudo guardar' })
   }
 
   return (

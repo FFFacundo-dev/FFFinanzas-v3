@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, PencilSimple, Trash, Check, X, Bank, DeviceMobile, Money } from '@phosphor-icons/react'
 import {
   Dialog,
@@ -27,6 +26,7 @@ import {
   useUpdateAccountMutation,
   useDeleteAccountMutation,
 } from '../accountsApi'
+import { runMutation } from '@/lib/mutation'
 
 const TYPES = [
   { value: 'BANK', label: 'Banco', icon: Bank },
@@ -53,14 +53,10 @@ export function AccountManagerDialog({ open, onOpenChange }) {
     e.preventDefault()
     const name = newName.trim()
     if (!name) return
-    try {
-      await createAccount({ name, account_type: newType }).unwrap()
-      setNewName('')
-      setNewType('BANK')
-      toast.success('Medio creado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo crear')
-    }
+    const { ok } = await runMutation(createAccount({ name, account_type: newType }), { success: 'Medio creado', error: 'No se pudo crear' })
+    if (!ok) return
+    setNewName('')
+    setNewType('BANK')
   }
 
   function startEdit(a) {
@@ -72,24 +68,14 @@ export function AccountManagerDialog({ open, onOpenChange }) {
   async function handleSave(id) {
     const name = editName.trim()
     if (!name) return
-    try {
-      await updateAccount({ id, name, account_type: editType }).unwrap()
-      setEditingId(null)
-      toast.success('Medio actualizado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo actualizar')
-    }
+    const { ok } = await runMutation(updateAccount({ id, name, account_type: editType }), { success: 'Medio actualizado', error: 'No se pudo actualizar' })
+    if (!ok) return
+    setEditingId(null)
   }
 
   async function confirmDelete() {
-    try {
-      await deleteAccount(toDelete.id).unwrap()
-      toast.success('Medio eliminado')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setToDelete(null)
-    }
+    await runMutation(deleteAccount(toDelete.id), { success: 'Medio eliminado', error: 'No se pudo eliminar' })
+    setToDelete(null)
   }
 
   return (

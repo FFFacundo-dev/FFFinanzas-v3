@@ -47,12 +47,20 @@ async function assertValidParent(userId, childId, parentId, childCurrency) {
   }
 }
 
-async function availableFor(userId, currencyCode) {
-  const rows = await sql`
+async function availableFor(tx, userId, currencyCode) {
+  const rows = await tx`
     SELECT available_balance FROM public.v_user_balances_summary
     WHERE user_id = ${userId} AND currency_code = ${currencyCode}
   `
   return rows.length ? Number(rows[0].available_balance) : 0
+}
+
+// Serializa los movimientos de metas de un mismo usuario dentro de la transaccion.
+// Sin esto, dos ALLOCATE simultaneos leen el mismo "disponible" y reservan de mas.
+// ponytail: un lock por usuario alcanza (la app es de un usuario por vez); si algun
+// dia hay concurrencia real, el candidato es un lock por (usuario, moneda).
+function lockUserGoals(tx, userId) {
+  return tx`SELECT pg_advisory_xact_lock(${userId}::bigint)`
 }
 
 export function listGoals(userId, status) {
@@ -128,6 +136,7 @@ export async function listGoalMovements(userId, goalId) {
 // ponytail: al borrar el pago la plata vuelve al disponible, NO se re-reserva en la meta
 // (goal_movements no linkea al pago); sumar esa columna si algún día molesta.
 export async function releaseFromGoalTx(tx, userId, goalId, amount, currencyCode) {
+  await lockUserGoals(tx, userId)
   const rows = await tx`
     SELECT current_amount, currency_code, status FROM public.v_goal_progress
     WHERE goal_id = ${goalId} AND user_id = ${userId}
@@ -166,33 +175,43 @@ export function listRecentMovements(userId, limit = 20) {
 }
 
 export async function createGoalMovement(userId, goalId, payload) {
-  const goal = await getGoal(userId, goalId)
-  if (goal.status === 'ARCHIVED') {
-    throw new HttpError(422, 'La meta está archivada')
-  }
-  const kids = await sql`SELECT 1 FROM public.goals WHERE parent_id = ${goalId} LIMIT 1`
-  if (kids.length > 0) {
-    throw new HttpError(422, 'Esta meta agrupa otras: aportá o retirá en las metas hijas')
-  }
   const amount = Number(payload.amount)
 
-  if (payload.movement_type === 'ALLOCATE') {
-    // Llegar al objetivo NO frena: el único límite es el disponible.
-    const available = await availableFor(userId, goal.currency_code)
-    if (amount > available + EPS) {
-      throw new HttpError(422, `No tenés suficiente disponible en ${goal.currency_code}`)
+  const movement = await sql.begin(async (tx) => {
+    await lockUserGoals(tx, userId)
+
+    const rows = await tx`
+      SELECT ${PROGRESS_COLUMNS} FROM public.v_goal_progress
+      WHERE goal_id = ${goalId} AND user_id = ${userId}
+    `
+    if (rows.length === 0) throw new HttpError(404, 'Goal not found')
+    const goal = rows[0]
+
+    if (goal.status === 'ARCHIVED') {
+      throw new HttpError(422, 'La meta está archivada')
     }
-  } else {
-    const current = Number(goal.current_amount)
-    if (amount > current + EPS) {
+    const kids = await tx`SELECT 1 FROM public.goals WHERE parent_id = ${goalId} LIMIT 1`
+    if (kids.length > 0) {
+      throw new HttpError(422, 'Esta meta agrupa otras: aportá o retirá en las metas hijas')
+    }
+
+    if (payload.movement_type === 'ALLOCATE') {
+      // Llegar al objetivo NO frena: el único límite es el disponible.
+      const available = await availableFor(tx, userId, goal.currency_code)
+      if (amount > available + EPS) {
+        throw new HttpError(422, `No tenés suficiente disponible en ${goal.currency_code}`)
+      }
+    } else if (amount > Number(goal.current_amount) + EPS) {
       throw new HttpError(422, 'No podés retirar más de lo reservado en la meta')
     }
-  }
 
-  const rows = await sql`
-    INSERT INTO public.goal_movements (goal_id, user_id, movement_type, amount)
-    VALUES (${goalId}, ${userId}, ${payload.movement_type}, ${amount})
-    RETURNING id, goal_id, movement_type, amount, date, created_at
-  `
-  return { movement: rows[0], goal: await getGoal(userId, goalId) }
+    const inserted = await tx`
+      INSERT INTO public.goal_movements (goal_id, user_id, movement_type, amount)
+      VALUES (${goalId}, ${userId}, ${payload.movement_type}, ${amount})
+      RETURNING id, goal_id, movement_type, amount, date, created_at
+    `
+    return inserted[0]
+  })
+
+  return { movement, goal: await getGoal(userId, goalId) }
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Plus, Target } from '@phosphor-icons/react'
 import { PageHeader } from '@/components/common/PageHeader'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -19,6 +18,7 @@ import { GoalMovementDialog } from './components/GoalMovementDialog'
 import { GoalDetailDialog } from './components/GoalDetailDialog'
 import { GoalReconcileDialog } from './components/GoalReconcileDialog'
 import { GoalActivityTable } from './components/GoalActivityTable'
+import { runMutation } from '@/lib/mutation'
 
 function Section({ title, count, children }) {
   return (
@@ -66,39 +66,28 @@ export function GoalsView() {
   ).filter(([, total]) => total > 0)
 
   async function confirmWithdrawAll() {
-    try {
-      await createMovement({
-        id: toWithdrawAll.id,
-        movement_type: 'RELEASE',
-        amount: Number(toWithdrawAll.current_amount),
-      }).unwrap()
-      toast.success('Se retiró todo lo reservado de la meta')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo retirar')
-    } finally {
-      setToWithdrawAll(null)
-    }
+    const kids = childrenOf(toWithdrawAll.id)
+    // Un grupo no tiene saldo propio: se libera cada hija con saldo.
+    const targets = kids.length ? kids.filter((c) => Number(c.current_amount) > 0) : [toWithdrawAll]
+    // ponytail: no atómico; cada RELEASE es válido solo y reintentar es inocuo.
+    const releases = targets.map((g) =>
+      createMovement({ id: g.id, movement_type: 'RELEASE', amount: Number(g.current_amount) }),
+    )
+    await runMutation(
+      { unwrap: () => Promise.all(releases.map((r) => r.unwrap())) },
+      { success: kids.length ? 'Se retiró todo lo reservado del grupo' : 'Se retiró todo lo reservado de la meta', error: 'No se pudo retirar' },
+    )
+    setToWithdrawAll(null)
   }
 
   async function handleArchiveToggle(goal) {
     const next = goal.status === 'ARCHIVED' ? 'ACTIVE' : 'ARCHIVED'
-    try {
-      await patchStatus({ id: goal.id, status: next }).unwrap()
-      toast.success(next === 'ARCHIVED' ? 'Meta archivada' : 'Meta restaurada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo cambiar el estado')
-    }
+    await runMutation(patchStatus({ id: goal.id, status: next }), { success: next === 'ARCHIVED' ? 'Meta archivada' : 'Meta restaurada', error: 'No se pudo cambiar el estado' })
   }
 
   async function confirmDelete() {
-    try {
-      await deleteGoal(toDelete.id).unwrap()
-      toast.success('Meta eliminada')
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo eliminar')
-    } finally {
-      setToDelete(null)
-    }
+    await runMutation(deleteGoal(toDelete.id), { success: 'Meta eliminada', error: 'No se pudo eliminar' })
+    setToDelete(null)
   }
 
   const cardProps = {
@@ -208,7 +197,11 @@ export function GoalsView() {
         open={Boolean(toWithdrawAll)}
         onOpenChange={(o) => !o && setToWithdrawAll(null)}
         title="Retirar todo"
-        description={`Se liberará todo lo reservado de "${toWithdrawAll?.name}" al disponible. La meta queda en cero.`}
+        description={
+          toWithdrawAll && childrenOf(toWithdrawAll.id).length
+            ? `Se liberará todo lo reservado de las metas del grupo "${toWithdrawAll.name}" al disponible. Todas quedan en cero.`
+            : `Se liberará todo lo reservado de "${toWithdrawAll?.name}" al disponible. La meta queda en cero.`
+        }
         confirmLabel="Retirar todo"
         onConfirm={confirmWithdrawAll}
       />

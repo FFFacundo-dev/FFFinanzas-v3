@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MoneyInput } from '@/components/common/MoneyInput'
 import { Label } from '@/components/ui/label'
 import { AccountSelect, NONE } from '@/components/common/EntitySelects'
@@ -19,6 +20,7 @@ import {
   useCreateCategoryMutation,
 } from '@/features/categories/categoriesApi'
 import { useCreateTransactionMutation } from '@/features/transactions/transactionsApi'
+import { runMutation } from '@/lib/mutation'
 
 const ADJUST_CATEGORY = 'Ajuste'
 
@@ -36,14 +38,17 @@ async function ensureAdjustCategory(categories, createCategory) {
   }
 }
 
-function ReconcileForm({ currency, currentBalance, onClose }) {
+function ReconcileForm({ currency, totalBalance, availableBalance, onClose }) {
   const { data: categories = [] } = useGetCategoriesQuery()
   const [createCategory] = useCreateCategoryMutation()
   const [createTx, { isLoading }] = useCreateTransactionMutation()
 
   const [real, setReal] = useState('')
   const [accountId, setAccountId] = useState(NONE)
+  const [base, setBase] = useState('total')
 
+  // El ajuste es la misma transacción en ambos casos; solo cambia la base de la diferencia.
+  const currentBalance = base === 'available' ? availableBalance : totalBalance
   const realNum = Number(real)
   const hasReal = real !== '' && Number.isFinite(realNum)
   const diff = hasReal ? Number((realNum - currentBalance).toFixed(2)) : 0
@@ -67,21 +72,17 @@ function ReconcileForm({ currency, currentBalance, onClose }) {
 
     const categoryId = await ensureAdjustCategory(categories, createCategory)
 
-    try {
-      await createTx({
-        movement_type: isExpense ? 'EXPENSE' : 'INCOME',
-        amount: Math.abs(diff),
-        currency_code: currency,
-        category_id: categoryId,
-        account_id: isExpense ? accountId : null,
-        date: toInputDate(new Date()),
-        description: `Ajuste de saldo (${currency})`,
-      }).unwrap()
-      toast.success('Pozo conciliado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo conciliar')
-    }
+    const { ok } = await runMutation(createTx({
+      movement_type: isExpense ? 'EXPENSE' : 'INCOME',
+      amount: Math.abs(diff),
+      currency_code: currency,
+      category_id: categoryId,
+      account_id: isExpense ? accountId : null,
+      date: toInputDate(new Date()),
+      description: `Ajuste de saldo ${base === 'available' ? 'disponible ' : ''}(${currency})`,
+    }), { success: 'Pozo conciliado', error: 'No se pudo conciliar' })
+    if (!ok) return
+    onClose()
   }
 
   return (
@@ -94,8 +95,17 @@ function ReconcileForm({ currency, currentBalance, onClose }) {
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Tabs value={base} onValueChange={setBase}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="total">Total</TabsTrigger>
+            <TabsTrigger value="available">Disponible</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <div className="flex items-center justify-between rounded-sm border border-border bg-secondary/40 px-3 py-2 text-sm">
-          <span className="text-muted-foreground">Pozo actual</span>
+          <span className="text-muted-foreground">
+            {base === 'available' ? 'Disponible actual' : 'Pozo actual'}
+          </span>
           <MoneyAmount value={currentBalance} currency={currency} size="sm" />
         </div>
 
@@ -146,14 +156,15 @@ function ReconcileForm({ currency, currentBalance, onClose }) {
   )
 }
 
-export function ReconcileDialog({ open, onOpenChange, currency, currentBalance }) {
+export function ReconcileDialog({ open, onOpenChange, currency, totalBalance, availableBalance }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         {open && currency && (
           <ReconcileForm
             currency={currency}
-            currentBalance={currentBalance}
+            totalBalance={totalBalance}
+            availableBalance={availableBalance}
             onClose={() => onOpenChange(false)}
           />
         )}

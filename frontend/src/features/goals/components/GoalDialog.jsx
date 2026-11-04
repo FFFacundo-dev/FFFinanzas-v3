@@ -22,6 +22,7 @@ import {
 import { CurrencySelect, NONE } from '@/components/common/EntitySelects'
 import { toInputDate } from '@/lib/format'
 import { useCreateGoalMutation, useUpdateGoalMutation, useGetGoalsQuery } from '../goalsApi'
+import { runMutation } from '@/lib/mutation'
 
 function initialForm(goal) {
   if (goal) {
@@ -69,30 +70,26 @@ function GoalForm({ goal, onClose }) {
     }
     const targetAmount = form.target_amount ? Number(form.target_amount) : null
     const parentId = hasChildren || form.parent_id === NONE ? null : form.parent_id
-    try {
-      if (isEdit) {
-        await updateGoal({
-          id: goal.id,
-          name: form.name.trim(),
-          target_amount: targetAmount,
-          deadline: form.deadline || null,
-          parent_id: parentId,
-        }).unwrap()
-        toast.success('Meta actualizada')
-      } else {
-        await createGoal({
-          name: form.name.trim(),
-          target_amount: targetAmount,
-          currency_code: form.currency_code,
-          deadline: form.deadline || null,
-          parent_id: parentId,
-        }).unwrap()
-        toast.success('Meta creada')
-      }
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    }
+    const { ok } = await runMutation(
+      isEdit
+        ? updateGoal({
+            id: goal.id,
+            name: form.name.trim(),
+            target_amount: targetAmount,
+            deadline: form.deadline || null,
+            parent_id: parentId,
+          })
+        : createGoal({
+            name: form.name.trim(),
+            target_amount: targetAmount,
+            currency_code: form.currency_code,
+            deadline: form.deadline || null,
+            parent_id: parentId,
+          }),
+      { success: isEdit ? 'Meta actualizada' : 'Meta creada', error: 'No se pudo guardar' },
+    )
+    if (!ok) return
+    onClose()
   }
 
   return (

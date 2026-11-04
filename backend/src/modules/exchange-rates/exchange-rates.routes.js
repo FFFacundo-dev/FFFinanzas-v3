@@ -1,15 +1,9 @@
 import { Router } from 'express'
 import { asyncHandler } from '../../utils/async-handler.js'
-import { getExchangeRatesSnapshot } from '../../utils/exchange-rates.js'
+import * as controller from './exchange-rates.controller.js'
 
 const router = Router()
 
-router.get('/', asyncHandler(async (_req, res) => {
-  res.json({ ok: true, data: await getExchangeRatesSnapshot() })
-}))
-
-router.post('/refresh', asyncHandler(async (_req, res) => {
-  res.json({ ok: true, data: await getExchangeRatesSnapshot({ forceRefresh: true }) })
-}))
+router.get('/', asyncHandler(controller.get))
 
 export default router

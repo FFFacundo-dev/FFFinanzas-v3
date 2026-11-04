@@ -30,6 +30,7 @@ import {
   useCreateSubscriptionMutation,
   useUpdateSubscriptionMutation,
 } from '../subscriptionsApi'
+import { runMutation } from '@/lib/mutation'
 
 const STATUSES = [
   { value: 'ACTIVE', label: 'Activa' },
@@ -87,18 +88,12 @@ function SubscriptionForm({ subscription, onClose }) {
       start_date: form.start_date || null,
       status: form.status,
     }
-    try {
-      if (isEdit) {
-        await updateSub({ id: subscription.id, ...body }).unwrap()
-        toast.success('Suscripción actualizada')
-      } else {
-        await createSub(body).unwrap()
-        toast.success('Suscripción creada')
-      }
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo guardar')
-    }
+    const { ok } = await runMutation(
+      isEdit ? updateSub({ id: subscription.id, ...body }) : createSub(body),
+      { success: isEdit ? 'Suscripción actualizada' : 'Suscripción creada', error: 'No se pudo guardar' },
+    )
+    if (!ok) return
+    onClose()
   }
 
   return (
@@ -126,7 +121,7 @@ function SubscriptionForm({ subscription, onClose }) {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex flex-1 flex-col gap-1.5">
-            <Label htmlFor="sub-amount">Monto mensual</Label>
+            <Label htmlFor="sub-amount">Monto mensual (vacío = variable)</Label>
             <MoneyInput
               id="sub-amount"
               value={form.default_amount}

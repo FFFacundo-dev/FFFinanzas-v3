@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Brand } from '@/components/layout/Brand'
 import { useLoginMutation, useRegisterMutation } from './authApi'
+import { runMutation } from '@/lib/mutation'
 
 export function AuthPage() {
   const [mode, setMode] = useState('login') // 'login' | 'register'
@@ -19,16 +19,11 @@ export function AuthPage() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    try {
-      if (isLogin) {
-        await login({ email, password }).unwrap()
-      } else {
-        await register({ email, password, preferredLanguage: 'es' }).unwrap()
-      }
-      // El éxito redirige solo (cambia el auth gating en App).
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo continuar')
-    }
+    // El éxito redirige solo (cambia el auth gating en App).
+    await runMutation(
+      isLogin ? login({ email, password }) : register({ email, password, preferredLanguage: 'es' }),
+      { error: 'No se pudo continuar' },
+    )
   }
 
   return (

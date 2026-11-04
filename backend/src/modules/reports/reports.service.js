@@ -85,10 +85,14 @@ export async function monthlyCashflow(userId, query) {
 
   const rows = await sql`
     SELECT DATE_TRUNC('month', t.date)::date AS month, t.currency_code,
-      SUM(CASE WHEN t.movement_type = 'INCOME' THEN t.amount ELSE 0 END) AS total_income,
-      SUM(CASE WHEN t.movement_type = 'EXPENSE' THEN t.amount ELSE 0 END) AS total_expense,
+      SUM(CASE WHEN t.movement_type = 'INCOME' AND COALESCE(c.is_system, false) THEN t.amount ELSE 0 END) AS total_income,
+      SUM(CASE WHEN t.movement_type = 'EXPENSE' THEN t.amount
+               WHEN NOT COALESCE(c.is_system, false) THEN -t.amount ELSE 0 END) AS total_expense,
       SUM(CASE WHEN t.movement_type = 'INCOME' THEN t.amount ELSE -t.amount END) AS net_balance
     FROM public.transactions t
+    -- Solo los INCOME con la categoria de sistema "Ingreso" son ingreso real; el
+    -- resto (devoluciones, etc.) se descuenta del gasto. El neto no cambia.
+    LEFT JOIN public.categories c ON c.id = t.category_id
     WHERE t.user_id = ${userId}
       AND (${accountId}::uuid IS NULL OR t.account_id = ${accountId})
       AND (${dateFrom}::date IS NULL OR t.date >= ${dateFrom})

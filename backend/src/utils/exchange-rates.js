@@ -3,7 +3,13 @@ import { env } from '../config/env.js'
 // Snapshot FX en "ARS por moneda" con cache de 5 min. Fuente primaria open.er-api,
 // fallback CoinGecko, y hard fallback final. Portado de v2.
 
-const HARD_FALLBACK_RATES = { ARS: 1, USD: 1600, USDT: 1600 }
+// Si un proveedor cuelga la conexion, cortamos y pasamos al siguiente (o al fallback).
+const FETCH_TIMEOUT_MS = 5000
+
+// Ultimo recurso cuando los dos proveedores fallan y no hay cache. Envejece: se puede
+// pisar con FALLBACK_USD_ARS sin tocar codigo.
+const FALLBACK_USD_ARS = Number(process.env.FALLBACK_USD_ARS) || 1600
+const HARD_FALLBACK_RATES = { ARS: 1, USD: FALLBACK_USD_ARS, USDT: FALLBACK_USD_ARS }
 
 let ratesCache = { snapshot: null, expiresAt: 0 }
 
@@ -51,7 +57,7 @@ function buildArsPerCurrencyFromCoinGecko(ratesByBtc) {
 }
 
 async function fetchOpenErApiSnapshot() {
-  const response = await fetch(env.fx.openErApiUrl, { method: 'GET', headers: { Accept: 'application/json' } })
+  const response = await fetch(env.fx.openErApiUrl, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!response.ok) throw new Error(`open.er-api failed with status ${response.status}`)
   const payload = await response.json()
   const rawRates = payload?.rates
@@ -62,7 +68,7 @@ async function fetchOpenErApiSnapshot() {
 }
 
 async function fetchCoinGeckoSnapshot() {
-  const response = await fetch(env.fx.coingeckoUrl, { method: 'GET', headers: { Accept: 'application/json' } })
+  const response = await fetch(env.fx.coingeckoUrl, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!response.ok) throw new Error(`CoinGecko exchange rates failed with status ${response.status}`)
   const payload = await response.json()
   const rawRates = payload?.rates

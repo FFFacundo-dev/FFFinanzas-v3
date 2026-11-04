@@ -23,6 +23,7 @@ import {
 import { toInputDate, formatAmount } from '@/lib/format'
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
 import { useCreateExchangeMutation } from '../exchangesApi'
+import { runMutation } from '@/lib/mutation'
 
 function initialForm() {
   return {
@@ -59,20 +60,16 @@ function ExchangeForm({ onClose }) {
       toast.error('Las monedas deben ser distintas')
       return
     }
-    try {
-      await createExchange({
-        from_currency_code: form.from_currency_code,
-        to_currency_code: form.to_currency_code,
-        from_amount: fromAmount,
-        to_amount: toAmount,
-        date: form.date,
-        description: form.description.trim() || null,
-      }).unwrap()
-      toast.success('Cambio registrado')
-      onClose()
-    } catch (err) {
-      toast.error(err?.message ?? 'No se pudo registrar el cambio')
-    }
+    const { ok } = await runMutation(createExchange({
+      from_currency_code: form.from_currency_code,
+      to_currency_code: form.to_currency_code,
+      from_amount: fromAmount,
+      to_amount: toAmount,
+      date: form.date,
+      description: form.description.trim() || null,
+    }), { success: 'Cambio registrado', error: 'No se pudo registrar el cambio' })
+    if (!ok) return
+    onClose()
   }
 
   return (
