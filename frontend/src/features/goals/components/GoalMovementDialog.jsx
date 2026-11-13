@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { Target } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,25 @@ function MovementForm({ goal, type, onClose }) {
   const value = Number(amount)
   const valid = value > 0 && value <= limit + 1e-9
 
+  // "Completar meta": aporta exactamente lo que falta para llegar al objetivo.
+  // Redondeo a centavos para no arrastrar ruido de float (0.30000000000000004).
+  const remaining =
+    goal.target_amount != null
+      ? Math.round((Number(goal.target_amount) - current) * 100) / 100
+      : 0
+  const showFill = isAllocate && remaining > 0
+  const canFill = showFill && remaining <= available + 1e-9
+
+  async function submit(v) {
+    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: type, amount: v }), { success: isAllocate ? 'Aporte registrado' : 'Retiro registrado', error: 'No se pudo registrar' })
+    if (ok) onClose()
+  }
+
+  async function handleFill() {
+    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: 'ALLOCATE', amount: remaining }), { success: '¡Meta completada!', error: 'No se pudo registrar' })
+    if (ok) onClose()
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!(value > 0)) {
@@ -44,9 +64,7 @@ function MovementForm({ goal, type, onClose }) {
       )
       return
     }
-    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: type, amount: value }), { success: isAllocate ? 'Aporte registrado' : 'Retiro registrado', error: 'No se pudo registrar' })
-    if (!ok) return
-    onClose()
+    await submit(value)
   }
 
   return (
@@ -74,12 +92,45 @@ function MovementForm({ goal, type, onClose }) {
           />
         </div>
 
+        {showFill && (
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              size="lg"
+              className="h-auto w-full justify-between gap-3 py-3"
+              onClick={handleFill}
+              disabled={isLoading || !canFill}
+            >
+              <span className="flex items-center gap-2">
+                <Target className="h-5 w-5" weight="bold" />
+                Completar meta
+              </span>
+              <MoneyAmount
+                value={remaining}
+                currency={goal.currency_code}
+                size="md"
+                className="text-primary-foreground"
+              />
+            </Button>
+            {!canFill && (
+              <p className="text-xs text-expense-foreground">
+                No te alcanza el disponible para completarla.
+              </p>
+            )}
+            <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              o un monto personalizado
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="gm-amount">Monto</Label>
           <MoneyInput
             id="gm-amount"
             required
-            autoFocus
+            autoFocus={!showFill}
             value={amount}
             onChange={setAmount}
             placeholder="0,00"
@@ -98,7 +149,7 @@ function MovementForm({ goal, type, onClose }) {
           <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isLoading || !valid}>
+          <Button type="submit" variant={showFill ? 'outline' : 'default'} disabled={isLoading || !valid}>
             {isLoading ? 'Guardando…' : isAllocate ? 'Aportar' : 'Retirar'}
           </Button>
         </DialogFooter>
