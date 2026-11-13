@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MoneyAmount } from '@/components/common/MoneyAmount'
 import { useGetCurrenciesQuery } from '@/features/currencies/currenciesApi'
-import { useGetBalanceByCurrencyQuery } from '@/features/dashboard/dashboardApi'
+import { useGetBalancesSummaryQuery } from '@/features/dashboard/dashboardApi'
 import { ReconcileDialog } from './ReconcileDialog'
 
 /** Conteo/reconciliación por moneda (PLAN D3). */
 export function ReconcileCard() {
   const { data: currencies = [], isLoading: loadingCur } = useGetCurrenciesQuery()
-  const { data: balances = [], isLoading: loadingBal } = useGetBalanceByCurrencyQuery()
+  const { data: balances = [], isLoading: loadingBal } = useGetBalancesSummaryQuery()
   const byCode = new Map(
     balances.map((b) => [
       b.currency_code,
