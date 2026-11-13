@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Target } from '@phosphor-icons/react'
+import { Target, ArrowCircleDown } from '@phosphor-icons/react'
 import {
   Dialog,
   DialogContent,
@@ -37,8 +37,13 @@ function MovementForm({ goal, type, onClose }) {
     goal.target_amount != null
       ? Math.round((Number(goal.target_amount) - current) * 100) / 100
       : 0
-  const showFill = isAllocate && remaining > 0
-  const canFill = showFill && remaining <= available + 1e-9
+  // Acción rápida: al aportar "Completar meta" (lo que falta); al retirar "Retirar todo" (lo reservado).
+  const quick = isAllocate
+    ? { show: remaining > 0, amount: remaining, label: 'Completar meta', icon: Target, success: '¡Meta completada!' }
+    : { show: current > 0, amount: current, label: 'Retirar todo', icon: ArrowCircleDown, success: 'Se retiró todo lo reservado de la meta' }
+  const showFill = quick.show
+  const canFill = showFill && quick.amount <= limit + 1e-9
+  const QuickIcon = quick.icon
 
   async function submit(v) {
     const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: type, amount: v }), { success: isAllocate ? 'Aporte registrado' : 'Retiro registrado', error: 'No se pudo registrar' })
@@ -46,7 +51,7 @@ function MovementForm({ goal, type, onClose }) {
   }
 
   async function handleFill() {
-    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: 'ALLOCATE', amount: remaining }), { success: '¡Meta completada!', error: 'No se pudo registrar' })
+    const { ok } = await runMutation(createMovement({ id: goal.id, movement_type: type, amount: quick.amount }), { success: quick.success, error: 'No se pudo registrar' })
     if (ok) onClose()
   }
 
@@ -102,11 +107,11 @@ function MovementForm({ goal, type, onClose }) {
               disabled={isLoading || !canFill}
             >
               <span className="flex items-center gap-2">
-                <Target className="h-5 w-5" weight="bold" />
-                Completar meta
+                <QuickIcon className="h-5 w-5" weight="bold" />
+                {quick.label}
               </span>
               <MoneyAmount
-                value={remaining}
+                value={quick.amount}
                 currency={goal.currency_code}
                 size="md"
                 className="text-primary-foreground"
